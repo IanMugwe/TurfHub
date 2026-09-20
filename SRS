@@ -1,0 +1,1375 @@
+Software Requirements Specification (SRS)
+
+ ## TYRF Turf Booking & Discovery Platform
+
+ **Version:** 1.1\
+ **Target Market:** Nairobi, Kenya\
+ **Application Type:** Mobile-first responsive web application\
+ **Future Module:** 3D Turf Map & Navigation
+
+---
+
+ # 1\. Introduction
+
+ ## 1.1 Purpose
+
+ TYRF is a web-based platform for discovering, booking, and managing football turfs in Nairobi.
+
+ The system will allow customers to search for turfs, view availability, reserve time slots, make payments, and manage their bookings.
+
+ Turf owners will be able to manage venues, pitches, availability, pricing, bookings, and revenue through an owner dashboard.
+
+ Administrators will manage users, venues, bookings, payments, disputes, and platform operations.
+
+ A future version of TYRF will introduce an interactive **3D Turf Map & Navigation subsystem**, allowing users to explore football venues through a simplified 3D representation of roads, turfs, entrances, landmarks, and navigation routes.
+
+---
+
+ # 2\. Product Vision
+
+ TYRF aims to become a digital platform for discovering and accessing football facilities.
+
+ The initial product focuses on:
+
+ > **Find → Check availability → Book → Pay → Play**
+
+ The long-term vision expands this into:
+
+ > **Discover → Explore → Navigate → Book → Play**
+
+ The 3D map is therefore considered a future differentiation layer rather than a dependency of the core booking system.
+
+---
+
+ # 3\. Scope
+
+ ## 3.1 MVP Scope
+
+ The MVP shall provide:
+
+ - Customer registration and authentication.
+- Turf discovery.
+- Location-based search.
+- Turf profiles.
+- Availability checking.
+- Booking.
+- M-Pesa payment.
+- Booking confirmation.
+- Booking history.
+- Cancellation.
+- Turf-owner management.
+- Venue management.
+- Turf management.
+- Availability management.
+- Pricing management.
+- Administrative management.
+- Notifications.
+- Basic reporting.
+
+ ## 3.2 Future Scope
+
+ Future versions may introduce:
+
+ - Interactive 3D turf map.
+- 3D venue models.
+- 3D navigation.
+- Reviews and ratings.
+- Favorites.
+- Recurring bookings.
+- Team management.
+- Tournament management.
+- Coach/trainer booking.
+- Equipment rental.
+- Memberships.
+- Loyalty programs.
+- Promotions.
+- Advanced analytics.
+- Native mobile applications.
+
+---
+
+ # 4\. Target Platforms
+
+ ## 4.1 Primary Platform
+
+ TYRF shall initially be developed as a **responsive web application**.
+
+ It will be optimized primarily for smartphones while remaining usable on:
+
+ - Smartphones
+- Tablets
+- Laptops
+- Desktop computers
+
+ The system will not initially require separate Android or iOS applications.
+
+ ## 4.2 Mobile-First Design
+
+ The customer interface shall be designed using a mobile-first approach.
+
+ The primary interaction should work comfortably with:
+
+ - Touch controls.
+- Small screens.
+- Mobile browsers.
+- Variable network speeds.
+- One-handed interaction where practical.
+
+ The desktop interface will progressively enhance the mobile experience rather than being designed independently.
+
+---
+
+ # 5\. User Roles
+
+ ## 5.1 Customer
+
+ Customers can:
+
+ - Register/login.
+- Search turfs.
+- Filter turfs.
+- View turf information.
+- View availability.
+- Book a turf.
+- Make payments.
+- View booking history.
+- Cancel eligible bookings.
+- Receive notifications.
+
+ ## 5.2 Turf Owner/Manager
+
+ Owners can:
+
+ - Register as turf operators.
+- Create venues.
+- Add turfs.
+- Upload images.
+- Configure operating hours.
+- Configure prices.
+- Configure booking durations.
+- Block unavailable periods.
+- View bookings.
+- Manage bookings.
+- View revenue.
+
+ ## 5.3 Administrator
+
+ Administrators can:
+
+ - Manage users.
+- Manage turf owners.
+- Approve venues.
+- Manage turfs.
+- Monitor bookings.
+- Monitor payments.
+- Manage refunds.
+- Handle disputes.
+- Suspend users/venues.
+- View reports.
+- View audit logs.
+
+---
+
+ # 6\. Functional Requirements
+
+ ## 6.1 Authentication
+
+ The system shall:
+
+ - Support customer registration.
+- Support owner registration.
+- Support secure login.
+- Support logout.
+- Support password/account recovery where applicable.
+- Implement role-based authorization.
+- Protect administrative functionality.
+
+ Phone-based authentication should be considered because the target market is mobile-first.
+
+---
+
+ # 7\. Turf Discovery
+
+ Customers shall be able to:
+
+ - Search for turfs.
+- Search by location.
+- Filter by price.
+- Filter by turf type.
+- Filter by date.
+- Filter by time.
+- View venue details.
+- View images.
+- View location.
+- View available slots.
+
+ The system should prioritize fast search and minimal interaction on mobile devices.
+
+---
+
+ # 8\. Venue Management
+
+ Owners shall be able to create and manage venues.
+
+ A venue shall contain information such as:
+
+ - Venue name.
+- Description.
+- Address.
+- Area/neighborhood.
+- Latitude.
+- Longitude.
+- Contact information.
+- Images.
+- Operating status.
+
+ A venue may contain multiple turfs.
+
+ Example:
+
+```
+Venue
+ ├── Turf A — 5-a-side
+ ├── Turf B — 7-a-side
+ └── Turf C — 11-a-side
+```
+
+---
+
+ # 9\. Turf Management
+
+ Each turf shall contain:
+
+ - Turf name.
+- Turf type.
+- Capacity.
+- Venue.
+- Price.
+- Booking duration.
+- Operating status.
+- Availability rules.
+- Images where applicable.
+
+---
+
+ # 10\. Availability Management
+
+ Owners shall be able to define:
+
+ - Opening hours.
+- Closing hours.
+- Booking durations.
+- Available days.
+- Blocked periods.
+- Maintenance periods.
+- Special availability.
+
+ The system shall calculate bookable slots based on these rules.
+
+---
+
+ # 11\. Booking Management
+
+ Customers shall be able to:
+
+ 1. Select a venue.
+2. Select a turf.
+3. Select a date.
+4. Select a time.
+5. Review booking information.
+6. Initiate payment.
+7. Receive confirmation after successful payment.
+
+ The system shall prevent overlapping bookings.
+
+ ## 11.1 Booking States
+
+```
+PENDING
+HELD
+PAYMENT_PENDING
+CONFIRMED
+CANCELLED
+EXPIRED
+COMPLETED
+REFUND_PENDING
+REFUNDED
+```
+
+ ## 11.2 Temporary Holds
+
+ When a customer begins the booking/payment process, the selected slot may be temporarily held.
+
+ Example:
+
+```
+AVAILABLE
+    ↓
+HELD
+    ↓
+PAYMENT_PENDING
+    ↓
+CONFIRMED
+```
+
+ If payment is not completed within the configured period:
+
+```
+HELD
+  ↓
+EXPIRED
+  ↓
+AVAILABLE
+```
+
+ The database shall enforce booking integrity to prevent concurrent customers from successfully reserving the same inventory.
+
+---
+
+ # 12\. Payment System
+
+ M-Pesa shall be a primary payment method for the MVP.
+
+ The payment subsystem shall:
+
+ - Initiate payment requests.
+- Associate payments with bookings.
+- Track payment status.
+- Receive payment callbacks.
+- Verify payment results.
+- Store transaction references.
+- Handle failed transactions.
+- Support refunds where applicable.
+- Maintain transaction records.
+
+ The payment architecture should be provider-independent so additional payment providers can be introduced later.
+
+---
+
+ # 13\. Notifications
+
+ The system shall support notifications for:
+
+ - Booking confirmation.
+- Payment confirmation.
+- Payment failure.
+- Cancellation.
+- Booking reminders.
+- Refunds.
+- Booking changes.
+
+ Potential channels:
+
+ - SMS.
+- Email.
+- Push notifications.
+- WhatsApp integration in a future version.
+
+---
+
+ # 14\. Customer Booking Management
+
+ Customers shall be able to view:
+
+ - Upcoming bookings.
+- Previous bookings.
+- Booking reference.
+- Venue.
+- Turf.
+- Date.
+- Time.
+- Amount paid.
+- Payment status.
+- Booking status.
+
+---
+
+ # 15\. Turf Owner Dashboard
+
+ The owner dashboard shall provide:
+
+ - Dashboard overview.
+- Venue management.
+- Turf management.
+- Availability calendar.
+- Pricing management.
+- Booking management.
+- Revenue summary.
+- Booking history.
+
+ The dashboard shall be responsive and usable from mobile devices.
+
+---
+
+ # 16\. Administration
+
+ The administration system shall provide:
+
+ - User management.
+- Owner management.
+- Venue approval.
+- Turf management.
+- Booking monitoring.
+- Payment monitoring.
+- Refund management.
+- Dispute management.
+- Platform reporting.
+- Audit logging.
+
+---
+
+ # 17\. Location Services
+
+ The system shall store geographic information for venues.
+
+ Each venue should support:
+
+ - Address.
+- Latitude.
+- Longitude.
+- Area/neighborhood.
+
+ The MVP may use an external mapping service for location display and directions.
+
+ The architecture shall keep mapping functionality separate from the core booking engine.
+
+ This separation is important because the future TYRF 3D subsystem will replace/enhance the basic map experience without requiring major changes to booking functionality.
+
+---
+
+ # 18\. Future Module — TYRF 3D Map & Navigation
+
+ ## 18.1 Overview
+
+ The 3D Map & Navigation subsystem will provide an interactive visual representation of football venues and their surrounding environment.
+
+ The purpose is not to reproduce an entire 3D version of Nairobi.
+
+ Instead, TYRF will create a **purpose-built football-oriented geographic environment**.
+
+ The system may represent:
+
+ - Roads.
+- Terrain.
+- Turf locations.
+- Turf boundaries.
+- Venue buildings.
+- Entrances.
+- Parking.
+- Relevant landmarks.
+- Walking paths.
+- Navigation routes.
+
+---
+
+ # 19\. 3D Map Objectives
+
+ The future subsystem shall allow users to:
+
+ - Explore nearby turfs visually.
+- Select a turf directly from the 3D map.
+- View venue information.
+- View turf availability.
+- Navigate to a venue.
+- Identify the correct venue entrance.
+- Identify parking/access points where available.
+- Transition from map exploration to booking.
+
+ Example:
+
+```
+3D MAP
+   ↓
+Select Turf
+   ↓
+Venue Information
+   ↓
+Check Availability
+   ↓
+Book
+   ↓
+Get Directions
+```
+
+---
+
+ # 20\. 3D Data Architecture
+
+ The 3D subsystem shall be independent of the core booking engine.
+
+ Example:
+
+```
+Turf
+ ├── id
+ ├── venue_id
+ ├── latitude
+ ├── longitude
+ └── 3d_model_id
+
+3D Venue
+ ├── model_id
+ ├── turf_id
+ ├── entrance
+ ├── parking
+ └── navigation metadata
+```
+
+ This allows the booking platform to function even if a venue does not yet have a 3D model.
+
+ ## 20.1 Progressive Modelling
+
+ Venues should have different representation levels:
+
+ ### Level 1 — Location
+
+ Simple turf marker.
+
+ ### Level 2 — Simplified Model
+
+ Basic 3D representation of the venue/turf.
+
+ ### Level 3 — Detailed Model
+
+ Detailed venue, entrance, parking and surrounding environment.
+
+ This allows TYRF to scale the 3D system gradually.
+
+---
+
+ # 21\. 3D Map MVP for Future Phase
+
+ The first 3D prototype should not attempt to model all of Nairobi.
+
+ A pilot area should be selected with a limited number of venues.
+
+ The prototype should include:
+
+ - Basic terrain.
+- Roads.
+- Selected turf locations.
+- Simple 3D turf models.
+- Venue entrances.
+- Basic navigation.
+- Turf selection.
+- Link to booking.
+
+ The objective is to validate whether the 3D experience improves turf discovery and navigation before investing in large-scale modelling.
+
+---
+
+ # 22\. Recommended Technology Stack
+
+ ## 22.1 Frontend
+
+ **Next.js + React + TypeScript**
+
+ Responsibilities:
+
+ - Customer interface.
+- Owner dashboard.
+- Admin dashboard.
+- Server-side rendering where beneficial.
+- Responsive UI.
+- API integration.
+- Authentication interface.
+
+ ## 22.2 Styling/UI
+
+ Recommended:
+
+ - Tailwind CSS.
+- A reusable component system.
+- Responsive/mobile-first design.
+- Accessibility-focused UI components.
+
+ The design system should prioritize:
+
+ - Large touch targets.
+- Clear CTAs.
+- Simple navigation.
+- Fast loading.
+- Mobile usability.
+
+---
+
+ # 23\. Backend
+
+ **Node.js + TypeScript**
+
+ A modular backend architecture should be used.
+
+ Possible framework:
+
+ **NestJS**
+
+ or another structured TypeScript backend framework.
+
+ Core modules:
+
+```
+Authentication
+Users
+Venues
+Turfs
+Availability
+Bookings
+Payments
+Notifications
+Reviews
+Administration
+Location
+3D Metadata
+```
+
+ The backend shall expose a REST API initially.
+
+ GraphQL may be considered later if the application's data requirements justify it.
+
+---
+
+ # 24\. Database
+
+ **PostgreSQL**
+
+ PostgreSQL will be the primary relational database.
+
+ It will store:
+
+ - Users.
+- Venues.
+- Turfs.
+- Availability.
+- Pricing.
+- Bookings.
+- Payments.
+- Refunds.
+- Notifications.
+- Reviews.
+- Administrative records.
+- 3D metadata.
+
+ ## 24.1 Geographic Data
+
+ **PostGIS** should be considered for geographic functionality.
+
+ This would allow TYRF to perform operations such as:
+
+ - Find turfs near a user.
+- Calculate geographic distances.
+- Store venue geometry.
+- Perform geographic filtering.
+- Support future 3D/location functionality.
+
+---
+
+ # 25\. ORM
+
+ Recommended:
+
+ **Prisma**
+
+ Prisma will provide:
+
+ - Type-safe database access.
+- Schema management.
+- Database migrations.
+- Developer productivity.
+
+ Database-level constraints shall still be used where required for booking integrity.
+
+---
+
+ # 26\. Payment Technology
+
+ The payment architecture shall support:
+
+```
+TYRF Backend
+      ↓
+Payment Service
+      ↓
+M-Pesa
+      ↓
+Callback/Webhook
+      ↓
+TYRF Payment Verification
+      ↓
+Booking Confirmation
+```
+
+ Payment logic shall be isolated into a dedicated service/module.
+
+---
+
+ # 27\. Mapping Technology
+
+ For the MVP, the system may use an external mapping provider for:
+
+ - Geocoding.
+- Map display.
+- Location search.
+- Basic directions.
+
+ The mapping provider should be selected after reviewing:
+
+ - API pricing.
+- Kenya/Nairobi coverage.
+- Routing quality.
+- Licensing.
+- Mobile performance.
+- Developer experience.
+
+ The external map should not become a hard dependency for the booking engine.
+
+---
+
+ # 28\. Future 3D Technology
+
+ The 3D web experience can be built using:
+
+ **Three.js**
+
+ or
+
+ **Babylon.js**
+
+ The 3D layer will run in the browser using WebGL/WebGPU where supported.
+
+ Potential architecture:
+
+```
+Next.js
+   │
+   ├── Booking UI
+   ├── Search UI
+   ├── Owner Dashboard
+   └── 3D Map
+          │
+          ↓
+      Three.js
+          │
+    ┌─────┼─────┐
+    ↓     ↓     ↓
+ Terrain Roads Turfs
+          │
+          ↓
+     Navigation
+```
+
+ 3D assets may be stored using cloud object storage and delivered through a CDN.
+
+---
+
+ # 29\. File and Image Storage
+
+ Venue and turf images, as well as future 3D assets, should not be stored directly inside PostgreSQL.
+
+ Recommended architecture:
+
+```
+Application
+     ↓
+Object Storage
+     ↓
+CDN
+     ↓
+User
+```
+
+ Potential technologies include:
+
+ - Amazon S3.
+- Cloudflare R2.
+- Google Cloud Storage.
+- Other S3-compatible storage.
+
+---
+
+ # 30\. Caching
+
+ A caching layer should be introduced as traffic grows.
+
+ Recommended technology:
+
+ **Redis**
+
+ Potential uses:
+
+ - Temporary booking holds.
+- Session/cache data.
+- Rate limiting.
+- Frequently accessed turf information.
+- Availability caching where safe.
+- Background job coordination.
+
+ Booking correctness must remain database-controlled; Redis should not become the sole source of truth for inventory.
+
+---
+
+ # 31\. Background Jobs
+
+ A background job system should handle tasks such as:
+
+ - Booking expiration.
+- Payment reconciliation.
+- Notifications.
+- Booking reminders.
+- Refund processing.
+- Image processing.
+- Future 3D asset processing.
+
+ Potential technology:
+
+ **Redis + BullMQ**
+
+---
+
+ # 32\. API Architecture
+
+ The backend should expose versioned APIs.
+
+ Example:
+
+```
+/api/v1/auth
+/api/v1/users
+/api/v1/venues
+/api/v1/turfs
+/api/v1/availability
+/api/v1/bookings
+/api/v1/payments
+/api/v1/notifications
+/api/v1/admin
+```
+
+ Future 3D endpoints could include:
+
+```
+/api/v1/map
+/api/v1/map/turfs
+/api/v1/map/venues
+/api/v1/map/models
+/api/v1/map/routes
+```
+
+---
+
+ # 33\. Authentication and Security
+
+ The system shall implement:
+
+ - Secure authentication.
+- Role-based authorization.
+- HTTPS.
+- Password hashing where passwords are used.
+- Secure session/token management.
+- Input validation.
+- API rate limiting.
+- Protection against common web vulnerabilities.
+- Audit logging.
+- Secure payment handling.
+
+ Sensitive payment credentials and secrets shall be stored using environment-based secret management rather than source code.
+
+---
+
+ # 34\. Infrastructure
+
+ A cloud deployment architecture is recommended.
+
+ Example:
+
+```
+                  CDN
+                   │
+                   ↓
+              Next.js App
+                   │
+                   ↓
+              Backend API
+                   │
+       ┌───────────┼───────────┐
+       ↓           ↓           ↓
+ PostgreSQL      Redis      Object Storage
+       │
+       ↓
+   Backups
+```
+
+ Potential hosting providers:
+
+ - AWS.
+- Google Cloud.
+- Azure.
+- Vercel + managed backend/database.
+- Other reputable cloud platforms.
+
+ The final provider should be selected based on cost, operational complexity, scalability, and team expertise.
+
+---
+
+ # 35\. Development Environment
+
+ Recommended development stack:
+
+```
+TypeScript
+Node.js
+Next.js
+React
+Tailwind CSS
+PostgreSQL
+PostGIS
+Prisma
+Redis
+Docker
+Git
+GitHub
+```
+
+ Docker should be used to make local development environments reproducible.
+
+---
+
+ # 36\. Testing
+
+ The project shall include:
+
+ ## Unit Testing
+
+ Test individual business functions.
+
+ Examples:
+
+ - Pricing calculations.
+- Availability calculations.
+- Booking validation.
+- Cancellation rules.
+
+ ## Integration Testing
+
+ Test interactions between:
+
+ - API.
+- Database.
+- Booking engine.
+- Payment system.
+- Notification system.
+
+ ## End-to-End Testing
+
+ Test complete customer journeys:
+
+```
+Search
+ ↓
+Select turf
+ ↓
+Select slot
+ ↓
+Book
+ ↓
+Pay
+ ↓
+Confirm
+```
+
+ ## Concurrency Testing while preserving the long-term vision same Next.js application progressively enhance itself for tablets and desktops. This gives TYRF a much lower initial
+
+ Special attention shall be given to simultaneous booking attempts.
+
+ Example:
+
+```
+Customer A ──┐
+             ├── 19:00–20:00
+Customer B ──┘
+
+Only one booking may succeed.
+```
+
+---
+
+ # 37\. Performance Requirements
+
+ The system should be optimized for mobile networks.
+
+ The application should prioritize:
+
+ - Small payloads.
+- Image optimization.
+- Lazy loading.
+- Code splitting.
+- CDN delivery.
+- Efficient database queries.
+- Caching where appropriate.
+
+ The 3D subsystem, when introduced, shall load progressively so that users are not forced to download large 3D assets before accessing basic booking functionality.
+
+---
+
+ # 38\. Reliability Requirements
+
+ The system shall:
+
+ - Prevent double booking.
+- Preserve booking/payment consistency.
+- Handle duplicate payment callbacks safely.
+- Recover from temporary service failures.
+- Maintain database backups.
+- Maintain audit trails.
+- Provide monitoring and error logging.
+
+---
+
+ # 39\. Observability
+
+ Production infrastructure should include:
+
+ - Application logs.
+- API monitoring.
+- Error tracking.
+- Database monitoring.
+- Payment monitoring.
+- Performance monitoring.
+- Booking failure alerts.
+
+ Potential technologies include:
+
+ - Sentry.
+- OpenTelemetry.
+- Cloud provider monitoring services.
+
+---
+
+ # 40\. Core Database Entities
+
+ The initial database model should include:
+
+```
+users
+roles
+venues
+turfs
+turf_types
+operating_hours
+pricing_rules
+blocked_periods
+bookings
+payments
+refunds
+notifications
+reviews
+favorites
+audit_logs
+```
+
+ Future 3D entities may include:
+
+```
+map_regions
+map_features
+venue_models
+venue_entrances
+parking_locations
+navigation_paths
+3d_assets
+```
+
+---
+
+ # 41\. High-Level System Architecture
+
+```
+                         TYRF WEB APP
+                              │
+                 ┌────────────┴────────────┐
+                 │                         │
+          Customer Interface         Management Interfaces
+                 │                  Owner / Admin
+                 │                         │
+                 └────────────┬────────────┘
+                              ↓
+                         TYRF API
+                              │
+       ┌──────────┬───────────┼──────────┬───────────┐
+       ↓          ↓           ↓          ↓           ↓
+    Users      Venues      Booking    Payments   Notifications
+                            Engine
+                              │
+                    ┌─────────┴─────────┐
+                    ↓                   ↓
+               PostgreSQL             Redis
+               + PostGIS
+                    │
+                    ↓
+               Object Storage
+
+                FUTURE 3D MODULE
+                       │
+                       ↓
+                 3D Map Engine
+                 Three.js/
+                 Babylon.js
+                       │
+             ┌─────────┼─────────┐
+             ↓         ↓         ↓
+          Terrain    Roads     Turf Models
+                       │
+                       ↓
+                   Navigation
+```
+
+---
+
+ # 42\. Recommended Project Structure
+
+ The project should be organized as a modular monorepo.
+
+ Example:
+
+```
+tyrf/
+│
+├── apps/
+│   ├── web/
+│   └── api/
+│
+├── packages/
+│   ├── ui/
+│   ├── database/
+│   ├── types/
+│   ├── config/
+│   └── validation/
+│
+├── infrastructure/
+│
+├── docs/
+│
+└── tests/
+```
+
+ This allows shared types and UI components to be reused between applications.
+
+---
+
+ # 43\. Development Phases
+
+ ## Phase 1 — Requirements
+
+ - Finalize SRS.
+- Define business rules.
+- Define booking policies.
+- Define payment requirements.
+
+ ## Phase 2 — UX/UI
+
+ Design mobile-first:
+
+ - Customer home.
+- Search.
+- Turf listing.
+- Turf details.
+- Availability.
+- Booking.
+- Payment.
+- Confirmation.
+- My bookings.
+- Owner dashboard.
+- Admin dashboard.
+
+ ## Phase 3 — Architecture
+
+ Design:
+
+ - Database.
+- API.
+- Authentication.
+- Booking engine.
+- Payment architecture.
+- Notification architecture.
+
+ ## Phase 4 — Backend
+
+ Implement:
+
+ - Authentication.
+- Users.
+- Venues.
+- Turfs.
+- Availability.
+- Booking engine.
+- Payments.
+- Notifications.
+
+ ## Phase 5 — Frontend
+
+ Implement the responsive web application.
+
+ Priority:
+
+```
+Customer
+   ↓
+Owner
+   ↓
+Admin
+```
+
+ ## Phase 6 — Payment Integration
+
+ Implement and test M-Pesa integration.
+
+ ## Phase 7 — Testing
+
+ Conduct:
+
+ - Unit testing.
+- Integration testing.
+- End-to-end testing.
+- Security testing.
+- Concurrency testing.
+- Payment testing.
+
+ ## Phase 8 — Pilot
+
+ Launch with a controlled set of Nairobi turf venues.
+
+ Collect real-world feedback.
+
+ ## Phase 9 — 3D Prototype
+
+ Build a small 3D map pilot covering a limited Nairobi area.
+
+ Implement:
+
+ - Roads.
+- Selected venues.
+- Simple turf models.
+- Entrances.
+- Basic navigation.
+- Turf-to-booking integration.
+
+ ## Phase 10 — Scale
+
+ Expand:
+
+ - Venue coverage.
+- 3D models.
+- Navigation.
+- Additional cities.
+- Advanced marketplace functionality.
+
+---
+
+ # 44\. MVP Priority
+
+ The development priority should be:
+
+```
+                    HIGH PRIORITY
+
+Authentication
+      ↓
+Turf Discovery
+      ↓
+Availability
+      ↓
+Booking Engine
+      ↓
+M-Pesa
+      ↓
+Booking Confirmation
+      ↓
+Owner Management
+      ↓
+Admin Management
+
+                    FUTURE
+
+3D Map
+      ↓
+3D Venue Models
+      ↓
+3D Navigation
+      ↓
+Football Ecosystem Features
+```
+
+---
+
+ # 45\. Product Principle
+
+ The core architectural principle for TYRF shall be:
+
+ > **The booking system must work independently of the 3D map.**
+
+ The 3D subsystem is a future discovery and navigation experience.
+
+ Therefore:
+
+```
+                    TYRF
+
+             ┌───────────────┐
+             │ Booking Core  │
+             │               │
+             │ Users         │
+             │ Turfs         │
+             │ Availability  │
+             │ Bookings      │
+             │ Payments      │
+             └───────┬───────┘
+                     │
+              ┌──────┴──────┐
+              │             │
+           2D Map        Future 3D
+                         Experience
+```
+
+ This prevents the project from becoming overly complicated during the MVP while preserving the long-term vision.
+
+---
+
+ # 46\. Final Product Definition
+
+ **TYRF is a mobile-first web platform for discovering, booking, and managing football turfs in Nairobi.**
+
+ The MVP provides:
+
+ **Discovery → Availability → Booking → M-Pesa Payment → Confirmation**
+
+ The future platform expands this into:
+
+ **3D Discovery → Venue Exploration → Navigation → Booking → Payment → Playing**
+
+ The technical architecture will therefore prioritize a reliable booking and payment core while keeping geographic and 3D functionality modular and extensible.
+
+ ### Recommended stack at a glance
+
+ | Layer | Technology |
+| --- | --- |
+| Web | Next.js + React |
+| Language | TypeScript |
+| UI | Tailwind CSS + reusable component system |
+| Backend | Node.js + NestJS |
+| API | REST |
+| Database | PostgreSQL |
+| Geospatial | PostGIS |
+| ORM | Prisma |
+| Cache/jobs | Redis + BullMQ |
+| Payments | M-Pesa |
+| Maps | External mapping provider |
+| Future 3D | Three.js or Babylon.js |
+| Images/3D assets | S3-compatible object storage |
+| CDN | Cloudflare or cloud-provider CDN |
+| Testing | Vitest/Jest + Playwright |
+| Containers | Docker |
+| Source control | Git + GitHub |
+| Monitoring | Sentry + OpenTelemetry |
+| Deployment | Cloud infrastructure |
+
+**One architectural decision I'd make now:** build **one responsive web application**, not separate mobile and desktop applications. Design it mobile-first, but let the same Next.js application progressively enhance itself for tablets and desktops. This gives TYRF a much lower initial development cost while keeping the door open for a future PWA or native mobile app.
+
+ The next logical artifact is the **database ERD + complete PostgreSQL schema**, because that will turn this SRS from a product specification into an implementable technical specification.
