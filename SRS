@@ -1,11 +1,13 @@
 Software Requirements Specification (SRS)
 
- ## TYRF Turf Booking & Discovery Platform
+ ## Turf — Booking & Discovery Platform
 
- **Version:** 1.1\
+ **Version:** 1.2\
  **Target Market:** Nairobi, Kenya\
  **Application Type:** Mobile-first responsive web application\
  **Future Module:** 3D Turf Map & Navigation
+
+ > **v1.2 change:** Online payment (M-Pesa) is deferred from the MVP. Players currently pay at the venue after playing, and requiring upfront payment would hinder adoption. The MVP focuses on turf management: bookings are reserved through Turf and paid at the venue, where staff record the payment. Online payment remains a future module (§12). See `docs/IMPLEMENTATION_PLAN.md`.
 
 ---
 
@@ -13,25 +15,25 @@ Software Requirements Specification (SRS)
 
  ## 1.1 Purpose
 
- TYRF is a web-based platform for discovering, booking, and managing football turfs in Nairobi.
+ Turf is a web-based platform for discovering, booking, and managing football turfs in Nairobi.
 
- The system will allow customers to search for turfs, view availability, reserve time slots, make payments, and manage their bookings.
+ The system will allow customers to search for turfs, view availability, reserve time slots, and manage their bookings. Payment is made at the venue in the MVP.
 
- Turf owners will be able to manage venues, pitches, availability, pricing, bookings, and revenue through an owner dashboard.
+ Turf owners will be able to manage venues, pitches, availability, pricing, staff, bookings (including walk-ins), payments received, and revenue through an owner dashboard.
 
  Administrators will manage users, venues, bookings, payments, disputes, and platform operations.
 
- A future version of TYRF will introduce an interactive **3D Turf Map & Navigation subsystem**, allowing users to explore football venues through a simplified 3D representation of roads, turfs, entrances, landmarks, and navigation routes.
+ A future version of Turf will introduce an interactive **3D Turf Map & Navigation subsystem**, allowing users to explore football venues through a simplified 3D representation of roads, turfs, entrances, landmarks, and navigation routes.
 
 ---
 
  # 2\. Product Vision
 
- TYRF aims to become a digital platform for discovering and accessing football facilities.
+ Turf aims to become a digital platform for discovering and accessing football facilities.
 
  The initial product focuses on:
 
- > **Find → Check availability → Book → Pay → Play**
+ > **Find → Check availability → Book → Play → Pay at venue**
 
  The long-term vision expands this into:
 
@@ -52,12 +54,15 @@ Software Requirements Specification (SRS)
 - Location-based search.
 - Turf profiles.
 - Availability checking.
-- Booking.
-- M-Pesa payment.
+- Booking (paid at the venue).
 - Booking confirmation.
 - Booking history.
 - Cancellation.
 - Turf-owner management.
+- Staff (manager) accounts.
+- Owner booking calendar, including walk-in, phone and recurring bookings.
+- Recording of payments received at the venue.
+- No-show tracking.
 - Venue management.
 - Turf management.
 - Availability management.
@@ -70,12 +75,13 @@ Software Requirements Specification (SRS)
 
  Future versions may introduce:
 
- - Interactive 3D turf map.
+ - Online payment (M-Pesa), deposits and refunds.
+- Interactive 3D turf map.
 - 3D venue models.
 - 3D navigation.
 - Reviews and ratings.
 - Favorites.
-- Recurring bookings.
+- Customer-initiated recurring bookings.
 - Team management.
 - Tournament management.
 - Coach/trainer booking.
@@ -92,7 +98,7 @@ Software Requirements Specification (SRS)
 
  ## 4.1 Primary Platform
 
- TYRF shall initially be developed as a **responsive web application**.
+ Turf shall initially be developed as a **responsive web application**.
 
  It will be optimized primarily for smartphones while remaining usable on:
 
@@ -131,7 +137,6 @@ Software Requirements Specification (SRS)
 - View turf information.
 - View availability.
 - Book a turf.
-- Make payments.
 - View booking history.
 - Cancel eligible bookings.
 - Receive notifications.
@@ -141,6 +146,7 @@ Software Requirements Specification (SRS)
  Owners can:
 
  - Register as turf operators.
+- Invite managers (staff) to their venues.
 - Create venues.
 - Add turfs.
 - Upload images.
@@ -150,7 +156,14 @@ Software Requirements Specification (SRS)
 - Block unavailable periods.
 - View bookings.
 - Manage bookings.
+- Create bookings for walk-in, phone and WhatsApp customers.
+- Create recurring weekly bookings.
+- Record payments received at the venue.
+- Mark no-shows.
+- View customer history.
 - View revenue.
+
+ Managers can do the same except edit pricing, manage staff, and view revenue reports.
 
  ## 5.3 Administrator
 
@@ -161,8 +174,6 @@ Software Requirements Specification (SRS)
 - Approve venues.
 - Manage turfs.
 - Monitor bookings.
-- Monitor payments.
-- Manage refunds.
 - Handle disputes.
 - Suspend users/venues.
 - View reports.
@@ -276,73 +287,68 @@ Venue
 2. Select a turf.
 3. Select a date.
 4. Select a time.
-5. Review booking information.
-6. Initiate payment.
-7. Receive confirmation after successful payment.
+5. Review booking information (price payable at the venue).
+6. Submit the booking.
+7. Receive confirmation (immediately, or after owner approval where the venue requires it).
 
- The system shall prevent overlapping bookings.
+ Venue staff shall also be able to create bookings directly from the owner calendar for walk-in, phone and WhatsApp customers, without the customer having an account.
+
+ The system shall prevent overlapping bookings, including between staff-created and customer-created bookings.
 
  ## 11.1 Booking States
 
 ```
-PENDING
-HELD
-PAYMENT_PENDING
+PENDING      awaiting owner approval
 CONFIRMED
+REJECTED
 CANCELLED
-EXPIRED
 COMPLETED
-REFUND_PENDING
-REFUNDED
+NO_SHOW
 ```
 
- ## 11.2 Temporary Holds
-
- When a customer begins the booking/payment process, the selected slot may be temporarily held.
-
- Example:
+ Payment status is tracked separately from booking status:
 
 ```
-AVAILABLE
-    ↓
-HELD
-    ↓
-PAYMENT_PENDING
-    ↓
-CONFIRMED
+UNPAID
+PARTIALLY_PAID
+PAID
+WAIVED
 ```
 
- If payment is not completed within the configured period:
+ ## 11.2 Temporary Holds (deferred)
 
-```
-HELD
-  ↓
-EXPIRED
-  ↓
-AVAILABLE
-```
+ Temporary holds (`HELD`, `PAYMENT_PENDING`, `EXPIRED`) and refund states (`REFUND_PENDING`, `REFUNDED`) are only needed for online payment and are deferred with it (§12).
 
- The database shall enforce booking integrity to prevent concurrent customers from successfully reserving the same inventory.
+ The database shall enforce booking integrity to prevent concurrent customers or staff from successfully reserving the same inventory.
 
 ---
 
  # 12\. Payment System
 
- M-Pesa shall be a primary payment method for the MVP.
+ ## 12.1 MVP — Payment at the Venue
 
- The payment subsystem shall:
+ Customers pay at the venue, as they do today. The system shall:
+
+ - Show the price payable at the venue when booking.
+- Allow staff to record payments against a booking (amount, method: cash / M-Pesa / other, optional M-Pesa transaction code).
+- Allow partial payments and waivers.
+- Allow staff to void a recorded payment with a reason (audit-logged).
+- Track payment status per booking.
+- Report revenue and outstanding unpaid amounts.
+
+ ## 12.2 Future — Online Payment
+
+ Online payment (M-Pesa STK Push) is deferred. When introduced it shall:
 
  - Initiate payment requests.
 - Associate payments with bookings.
-- Track payment status.
-- Receive payment callbacks.
-- Verify payment results.
+- Receive and verify payment callbacks.
+- Handle duplicate callbacks safely.
 - Store transaction references.
 - Handle failed transactions.
-- Support refunds where applicable.
-- Maintain transaction records.
+- Support deposits and refunds.
 
- The payment architecture should be provider-independent so additional payment providers can be introduced later.
+ The payment architecture should be provider-independent, and online payments shall be recorded in the same payment records as venue payments so that bookings and reporting are unaffected.
 
 ---
 
@@ -350,12 +356,10 @@ AVAILABLE
 
  The system shall support notifications for:
 
- - Booking confirmation.
-- Payment confirmation.
-- Payment failure.
+ - New booking or booking request (to venue staff).
+- Booking confirmation or rejection.
 - Cancellation.
 - Booking reminders.
-- Refunds.
 - Booking changes.
 
  Potential channels:
@@ -378,8 +382,7 @@ AVAILABLE
 - Turf.
 - Date.
 - Time.
-- Amount paid.
-- Payment status.
+- Price.
 - Booking status.
 
 ---
@@ -391,10 +394,15 @@ AVAILABLE
  - Dashboard overview.
 - Venue management.
 - Turf management.
-- Availability calendar.
+- Availability and booking calendar.
+- Walk-in, phone and recurring booking entry.
 - Pricing management.
 - Booking management.
-- Revenue summary.
+- Payment recording and unpaid tracking.
+- No-show tracking.
+- Customer history.
+- Staff management.
+- Revenue and occupancy reports.
 - Booking history.
 
  The dashboard shall be responsive and usable from mobile devices.
@@ -410,8 +418,6 @@ AVAILABLE
 - Venue approval.
 - Turf management.
 - Booking monitoring.
-- Payment monitoring.
-- Refund management.
 - Dispute management.
 - Platform reporting.
 - Audit logging.
@@ -433,11 +439,11 @@ AVAILABLE
 
  The architecture shall keep mapping functionality separate from the core booking engine.
 
- This separation is important because the future TYRF 3D subsystem will replace/enhance the basic map experience without requiring major changes to booking functionality.
+ This separation is important because the future Turf 3D subsystem will replace/enhance the basic map experience without requiring major changes to booking functionality.
 
 ---
 
- # 18\. Future Module — TYRF 3D Map & Navigation
+ # 18\. Future Module — Turf 3D Map & Navigation
 
  ## 18.1 Overview
 
@@ -445,7 +451,7 @@ AVAILABLE
 
  The purpose is not to reproduce an entire 3D version of Nairobi.
 
- Instead, TYRF will create a **purpose-built football-oriented geographic environment**.
+ Instead, Turf will create a **purpose-built football-oriented geographic environment**.
 
  The system may represent:
 
@@ -533,7 +539,7 @@ Turf
 
  Detailed venue, entrance, parking and surrounding environment.
 
- This allows TYRF to scale the 3D system gradually.
+ This allows Turf to scale the 3D system gradually.
 
 ---
 
@@ -642,8 +648,7 @@ Location
 - Availability.
 - Pricing.
 - Bookings.
-- Payments.
-- Refunds.
+- Venue payment records.
 - Notifications.
 - Reviews.
 - Administrative records.
@@ -653,7 +658,7 @@ Location
 
  **PostGIS** should be considered for geographic functionality.
 
- This would allow TYRF to perform operations such as:
+ This would allow Turf to perform operations such as:
 
  - Find turfs near a user.
 - Calculate geographic distances.
@@ -680,12 +685,12 @@ Location
 
 ---
 
- # 26\. Payment Technology
+ # 26\. Payment Technology (Future)
 
- The payment architecture shall support:
+ Online payment is deferred (§12.2). When introduced, the payment architecture shall support:
 
 ```
-TYRF Backend
+Turf Backend
       ↓
 Payment Service
       ↓
@@ -693,7 +698,7 @@ M-Pesa
       ↓
 Callback/Webhook
       ↓
-TYRF Payment Verification
+Turf Payment Verification
       ↓
 Booking Confirmation
 ```
@@ -811,11 +816,10 @@ User
 
  A background job system should handle tasks such as:
 
- - Booking expiration.
-- Payment reconciliation.
+ - Expiring unanswered booking requests.
+- Marking bookings completed.
 - Notifications.
 - Booking reminders.
-- Refund processing.
 - Image processing.
 - Future 3D asset processing.
 
@@ -970,12 +974,12 @@ Select slot
  ↓
 Book
  ↓
-Pay
- ↓
 Confirm
+ ↓
+Reminder
 ```
 
- ## Concurrency Testing while preserving the long-term vision same Next.js application progressively enhance itself for tablets and desktops. This gives TYRF a much lower initial
+ ## Concurrency Testing
 
  Special attention shall be given to simultaneous booking attempts.
 
@@ -984,7 +988,7 @@ Confirm
 ```
 Customer A ──┐
              ├── 19:00–20:00
-Customer B ──┘
+Staff (walk-in) ──┘
 
 Only one booking may succeed.
 ```
@@ -1014,8 +1018,7 @@ Only one booking may succeed.
  The system shall:
 
  - Prevent double booking.
-- Preserve booking/payment consistency.
-- Handle duplicate payment callbacks safely.
+- Preserve booking/payment-record consistency.
 - Recover from temporary service failures.
 - Maintain database backups.
 - Maintain audit trails.
@@ -1031,7 +1034,6 @@ Only one booking may succeed.
 - API monitoring.
 - Error tracking.
 - Database monitoring.
-- Payment monitoring.
 - Performance monitoring.
 - Booking failure alerts.
 
@@ -1057,8 +1059,9 @@ operating_hours
 pricing_rules
 blocked_periods
 bookings
-payments
-refunds
+booking_series
+booking_payments
+venue_members
 notifications
 reviews
 favorites
@@ -1082,7 +1085,7 @@ navigation_paths
  # 41\. High-Level System Architecture
 
 ```
-                         TYRF WEB APP
+                         Turf WEB APP
                               │
                  ┌────────────┴────────────┐
                  │                         │
@@ -1091,7 +1094,7 @@ navigation_paths
                  │                         │
                  └────────────┬────────────┘
                               ↓
-                         TYRF API
+                         Turf API
                               │
        ┌──────────┬───────────┼──────────┬───────────┐
        ↓          ↓           ↓          ↓           ↓
@@ -1130,7 +1133,7 @@ navigation_paths
  Example:
 
 ```
-tyrf/
+turfhub/
 │
 ├── apps/
 │   ├── web/
@@ -1161,7 +1164,7 @@ tyrf/
  - Finalize SRS.
 - Define business rules.
 - Define booking policies.
-- Define payment requirements.
+- Define cancellation, no-show and staff-permission policies.
 
  ## Phase 2 — UX/UI
 
@@ -1173,7 +1176,6 @@ tyrf/
 - Turf details.
 - Availability.
 - Booking.
-- Payment.
 - Confirmation.
 - My bookings.
 - Owner dashboard.
@@ -1187,7 +1189,7 @@ tyrf/
 - API.
 - Authentication.
 - Booking engine.
-- Payment architecture.
+- Payment-record model (extensible to online payment).
 - Notification architecture.
 
  ## Phase 4 — Backend
@@ -1200,7 +1202,7 @@ tyrf/
 - Turfs.
 - Availability.
 - Booking engine.
-- Payments.
+- Venue payment recording.
 - Notifications.
 
  ## Phase 5 — Frontend
@@ -1210,16 +1212,16 @@ tyrf/
  Priority:
 
 ```
-Customer
+Owner/Staff
    ↓
-Owner
+Customer
    ↓
 Admin
 ```
 
- ## Phase 6 — Payment Integration
+ ## Phase 6 — Payment Integration (Deferred)
 
- Implement and test M-Pesa integration.
+ Online M-Pesa integration is deferred. Revisit after the pilot.
 
  ## Phase 7 — Testing
 
@@ -1230,7 +1232,6 @@ Admin
 - End-to-end testing.
 - Security testing.
 - Concurrency testing.
-- Payment testing.
 
  ## Phase 8 — Pilot
 
@@ -1274,20 +1275,24 @@ Authentication
       ↓
 Turf Discovery
       ↓
-Availability
+Owner/Staff Management
       ↓
-Booking Engine
+Venues & Turfs
       ↓
-M-Pesa
+Availability & Pricing
       ↓
-Booking Confirmation
+Booking Calendar & Engine
       ↓
-Owner Management
+Venue Payments & Reports
+      ↓
+Customer Discovery & Booking
       ↓
 Admin Management
 
                     FUTURE
 
+Online Payment (M-Pesa)
+      ↓
 3D Map
       ↓
 3D Venue Models
@@ -1301,7 +1306,7 @@ Football Ecosystem Features
 
  # 45\. Product Principle
 
- The core architectural principle for TYRF shall be:
+ The core architectural principle for Turf shall be:
 
  > **The booking system must work independently of the 3D map.**
 
@@ -1310,7 +1315,7 @@ Football Ecosystem Features
  Therefore:
 
 ```
-                    TYRF
+                    Turf
 
              ┌───────────────┐
              │ Booking Core  │
@@ -1334,17 +1339,17 @@ Football Ecosystem Features
 
  # 46\. Final Product Definition
 
- **TYRF is a mobile-first web platform for discovering, booking, and managing football turfs in Nairobi.**
+ **Turf is a mobile-first web platform for discovering, booking, and managing football turfs in Nairobi.**
 
  The MVP provides:
 
- **Discovery → Availability → Booking → M-Pesa Payment → Confirmation**
+ **Turf management → Discovery → Availability → Booking → Confirmation → Pay at venue**
 
  The future platform expands this into:
 
  **3D Discovery → Venue Exploration → Navigation → Booking → Payment → Playing**
 
- The technical architecture will therefore prioritize a reliable booking and payment core while keeping geographic and 3D functionality modular and extensible.
+ The technical architecture will therefore prioritize a reliable booking and turf-management core while keeping geographic and 3D functionality modular and extensible.
 
  ### Recommended stack at a glance
 
@@ -1359,7 +1364,8 @@ Football Ecosystem Features
 | Geospatial | PostGIS |
 | ORM | Prisma |
 | Cache/jobs | Redis + BullMQ |
-| Payments | M-Pesa |
+| SMS | Africa's Talking |
+| Payments | Recorded at venue (MVP); M-Pesa online later |
 | Maps | External mapping provider |
 | Future 3D | Three.js or Babylon.js |
 | Images/3D assets | S3-compatible object storage |
@@ -1369,7 +1375,3 @@ Football Ecosystem Features
 | Source control | Git + GitHub |
 | Monitoring | Sentry + OpenTelemetry |
 | Deployment | Cloud infrastructure |
-
-**One architectural decision I'd make now:** build **one responsive web application**, not separate mobile and desktop applications. Design it mobile-first, but let the same Next.js application progressively enhance itself for tablets and desktops. This gives TYRF a much lower initial development cost while keeping the door open for a future PWA or native mobile app.
-
- The next logical artifact is the **database ERD + complete PostgreSQL schema**, because that will turn this SRS from a product specification into an implementable technical specification.
