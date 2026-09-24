@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatKES, formatPhoneKE, normalizePhoneKE, phoneToParam } from './format'
+import { formatKES, formatPhoneKE, normalizePhoneKE, phoneToParam } from './format.js'
 
 describe('formatKES', () => {
   it('groups thousands and prefixes the currency', () => {

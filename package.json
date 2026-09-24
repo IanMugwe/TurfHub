@@ -6,10 +6,17 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "pnpm --filter @turfhub/web dev",
+    "dev": "pnpm db:up && pnpm db:deploy && pnpm build:packages && pnpm -r --parallel --filter \"./apps/*\" --filter \"./packages/*\" dev",
+    "dev:web": "pnpm --filter @turfhub/web dev",
+    "db:up": "docker compose -f infrastructure/docker-compose.yml up -d --wait",
+    "db:down": "docker compose -f infrastructure/docker-compose.yml down",
+    "db:migrate": "pnpm --filter @turfhub/database db:migrate",
+    "db:deploy": "pnpm --filter @turfhub/database db:deploy",
+    "db:reset": "pnpm --filter @turfhub/database db:reset",
+    "build:packages": "pnpm -r --filter \"./packages/*\" build",
     "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm build:packages && pnpm -r typecheck",
     "lint": "pnpm -r lint",
-    "test": "pnpm -r test"
+    "test": "pnpm build:packages && pnpm -r test"
   }
 }

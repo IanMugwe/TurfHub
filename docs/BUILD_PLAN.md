@@ -16,13 +16,18 @@
 ```
 TurfHub/
 ├── apps/
-│   └── web/                 Vite + React 19 + Tailwind v4 (built)
+│   ├── web/                 Vite + React 19 + Tailwind v4
+│   └── api/                 NestJS 12 API under /api/v1
+├── packages/
+│   ├── database/            Prisma 7 schema, migrations, client
+│   └── validation/          shared Zod schemas and helpers
+├── infrastructure/          docker-compose: PostGIS + Redis
 ├── docs/                    SRS, plans, UI brief, Figma prompts
 ├── package.json             pnpm workspace root (pnpm dev / build / typecheck)
 └── pnpm-workspace.yaml      apps/*, packages/*
 ```
 
-Still to come: `apps/api` (NestJS), `packages/database`, `packages/validation`, `packages/types`, and `infrastructure/` for docker-compose.
+All of these exist since M0 (§4).
 
 ### 1.2 Built so far (frontend, mock data only)
 
@@ -153,7 +158,8 @@ Route guards redirect signed-out users to `/login`. Venue routes require a membe
 | UI design and clickable prototype | **Done** |
 | Repo as pnpm workspace, web app in `apps/web` | **Done** |
 | F0: Frontend foundations | **Done** |
-| M0 → M10 | To do |
+| M0: Backend foundations | **Done** (needs Docker to run locally) |
+| M1 → M10 | To do |
 
 ### F0: Frontend foundations (done)
 - **Routing:** React Router with the routes in §3.3 (`src/app/routes.tsx`). Sign-in, role redirects, the owner-only Reports route and a not-found page all work by URL. Sheets open from the URL (`?booking=`, `?new=1&turf=&start=`), so back closes them. Tapping an empty calendar slot now fills in the pitch and time.
@@ -163,10 +169,21 @@ Route guards redirect signed-out users to `/login`. Venue routes require a membe
 - **Design unchanged:** the phone frame and every screen look the same (W3). This was checked by screenshotting 24 screens before and after F0 in light and dark mode, with identical page markup and CSS.
 - **Kept on purpose:** inline styles, the Figma Make tooling, and `NOW_HOUR` until the API provides server time.
 
-### M0: Backend foundations (≈1 week)
-- `apps/api` (NestJS), `packages/{database,validation,types}`, docker-compose (`postgis/postgis:16`, `redis:7`), Prisma, `/api/v1` health check.
-- Vite dev proxy from `/api` to the API.
-- **Exit:** `pnpm dev` starts web + API + DB + Redis, and the web app shows the API's health status.
+### M0: Backend foundations (done)
+- **API (`apps/api`):** NestJS 12 (ES modules), everything under `/api/v1`.
+  - Settings are validated at startup with Zod (`src/config/env.ts`), with a clear error listing anything missing.
+  - Every error uses the `{ code, message, details? }` shape, and each request gets a request id and one log line. Logs are JSON in production.
+  - `GET /api/v1/health` checks Postgres (including the PostGIS version) and Redis with a 2 s timeout, returning 200 or 503. The API still starts when the database is down.
+- **`packages/database`:** Prisma 7 (`prisma-client` generator, `@prisma/adapter-pg`). The first migration enables `postgis` and `btree_gist`; tables come in M1+.
+- **`packages/validation`:** shared Zod schemas (error body, health response) and the format helpers moved from the web app. Workspace packages are used from source by the web app and from built `dist/` by the API.
+- **`infrastructure/docker-compose.yml`:** `postgis/postgis:16-3.5` and `redis:7-alpine`, with health checks and named volumes.
+- **Web:** a Vite proxy forwards `/api` to the API. TanStack Query is set up, with a typed `apiGet` client (`src/api`) that checks responses against the shared schemas. The desktop footer shows the live API status; phones are unchanged.
+- **Tooling:** root `pnpm dev` (Docker → migrations → packages → API + web), `pnpm dev:web` for frontend only, `db:*` scripts, `.env.example`, and a README. CI now runs real Postgres and Redis, applies migrations and runs the integration test.
+- **Decisions:**
+  - No separate `packages/types`: types come from the Zod schemas (`z.infer`), so there's one source of truth.
+  - TypeScript stays on 5.9 across the repo, since typescript-eslint doesn't support TypeScript 7 yet.
+  - Sentry moves to M10 (hardening), when there's a deployed environment to report from.
+- **Tests:** 14 API tests (settings, error reasons, health logic, HTTP behaviour) plus one integration test against real Postgres and Redis, run in CI.
 
 ### M1: Auth, roles and routing (≈1.5 weeks)
 - OTP request/verify, refresh rotation, logout, venue membership, policy guard, manager invites (implementation plan §2.9).

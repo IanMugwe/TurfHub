@@ -1,5 +1,5 @@
 import type { Booking, Customer, Session, StaffRole } from '../types'
-import { phoneToParam } from '../lib/format'
+import { phoneToParam } from '@turfhub/validation'
 
 export const VENUE = {
   id: 'greenfield',

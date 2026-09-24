@@ -1,17 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { createMemoryRouter, RouterProvider } from 'react-router'
-import { AppStateProvider } from './AppState'
+import { renderRoutes } from '../test/render'
 import { routes } from './routes'
 import { sessionForPhone } from '../mocks/data'
 import type { Session } from '../types'
 
 function renderAt(path: string, session?: Session) {
-  if (session) localStorage.setItem('turf.session', JSON.stringify(session))
-  const router = createMemoryRouter(routes, { initialEntries: [path] })
-  render(<AppStateProvider><RouterProvider router={router} /></AppStateProvider>)
-  return router
+  return renderRoutes(routes, path, session)
 }
 
 describe('desktop layout', () => {
@@ -57,5 +53,35 @@ describe('desktop layout', () => {
     renderAt('/explore', sessionForPhone('+254 712 345 678'))
     const header = await screen.findByRole('banner')
     expect(within(header).getByRole('button', { name: 'My Bookings' })).toBeInTheDocument()
+  })
+})
+
+describe('API status in the desktop footer', () => {
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: true, media: query, addEventListener: () => {}, removeEventListener: () => {} }))
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  const health = (status: 'ok' | 'degraded', httpStatus: number) => vi.fn(async () => new Response(JSON.stringify({
+    status, version: '0.1.0', uptimeSeconds: 5, time: new Date().toISOString(),
+    checks: { database: { status: 'up', latencyMs: 2, postgis: '3.5.2' }, redis: { status: status === 'ok' ? 'up' : 'down', latencyMs: status === 'ok' ? 1 : null } },
+  }), { status: httpStatus, headers: { 'Content-Type': 'application/json' } }))
+
+  it('shows the API as online', async () => {
+    vi.stubGlobal('fetch', health('ok', 200))
+    renderAt('/login')
+    expect(await screen.findByText('All systems normal')).toBeInTheDocument()
+  })
+
+  it('shows a degraded API (503 with a valid body)', async () => {
+    vi.stubGlobal('fetch', health('degraded', 503))
+    renderAt('/login')
+    expect(await screen.findByText('Service degraded')).toBeInTheDocument()
+  })
+
+  it('shows the API as offline when it cannot be reached', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
+    renderAt('/login')
+    expect(await screen.findByText('Server offline')).toBeInTheDocument()
   })
 })

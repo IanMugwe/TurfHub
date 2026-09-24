@@ -8,6 +8,31 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+
+    # Same images as infrastructure/docker-compose.yml
+    services:
+      postgres:
+        image: postgis/postgis:16-3.5
+        env:
+          POSTGRES_USER: turf
+          POSTGRES_PASSWORD: turf
+          POSTGRES_DB: turf
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U turf -d turf"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+
+    env:
+      DATABASE_URL: postgresql://turf:turf@localhost:5432/turf
+      REDIS_URL: redis://localhost:6379
+      RUN_INTEGRATION: '1'
+
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -16,6 +41,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages
+      - run: pnpm db:deploy
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test

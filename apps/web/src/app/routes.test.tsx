@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { createMemoryRouter, RouterProvider } from 'react-router'
-import { AppStateProvider } from './AppState'
+import { renderRoutes } from '../test/render'
 import { routes } from './routes'
 import { sessionForPhone } from '../mocks/data'
 import type { Session } from '../types'
@@ -12,10 +11,7 @@ const MANAGER = sessionForPhone('+254 733 000 222')
 const PLAYER = sessionForPhone('+254 712 345 678')
 
 function renderAt(path: string, session?: Session) {
-  if (session) localStorage.setItem('turf.session', JSON.stringify(session))
-  const router = createMemoryRouter(routes, { initialEntries: [path] })
-  render(<AppStateProvider><RouterProvider router={router} /></AppStateProvider>)
-  return router
+  return renderRoutes(routes, path, session)
 }
 
 describe('routing', () => {
@@ -79,8 +75,7 @@ describe('sign-in bypass (VITE_OTP_MODE=skip)', () => {
     const { routes: skipRoutes } = await import('./routes')
     const { AppStateProvider: Provider } = await import('./AppState')
     const user = userEvent.setup()
-    const router = createMemoryRouter(skipRoutes, { initialEntries: ['/login'] })
-    render(<Provider><RouterProvider router={router} /></Provider>)
+    const router = renderRoutes(skipRoutes, '/login', undefined, Provider)
     await user.type(screen.getByPlaceholderText('712 345 678'), '733000222')
     await user.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(router.state.location.pathname).toBe('/v/greenfield/today'))

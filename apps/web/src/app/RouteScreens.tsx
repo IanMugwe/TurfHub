@@ -21,7 +21,7 @@ import MyBookingsScreen from '../features/player/MyBookingsScreen'
 import ProfileScreen from '../features/player/ProfileScreen'
 import type { SlotSelection } from '../features/player/types'
 import { VENUE, customerByPhoneParam, initials } from '../mocks/data'
-import { phoneToParam } from '../lib/format'
+import { phoneToParam } from '@turfhub/validation'
 import { useIsDesktop } from '../lib/useIsDesktop'
 import type { Session } from '../types'
 

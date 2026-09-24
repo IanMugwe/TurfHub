@@ -1,0 +1,14 @@
+// Turf database schema. Tables are added milestone by milestone
+// (see docs/IMPLEMENTATION_PLAN.md §3). M0 only enables the extensions.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  runtime             = "nodejs"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}

@@ -9,7 +9,7 @@ import SiteShell from './SiteShell'
 import { useIsDesktop } from '../lib/useIsDesktop'
 import { CalIcon, ChartIcon, HomeIcon, MoreIcon, PeopleIcon } from '../ui/icons'
 import { VENUE, customerByPhoneParam, findBooking, initials } from '../mocks/data'
-import { phoneToParam } from '../lib/format'
+import { phoneToParam } from '@turfhub/validation'
 import type { Booking, Session } from '../types'
 import NotFound from './NotFound'
 

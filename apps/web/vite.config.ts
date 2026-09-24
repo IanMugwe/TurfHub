@@ -1,4 +1,4 @@
-import { defineConfig, type HtmlTagDescriptor, type Plugin } from 'vite'
+import { defaultClientConditions, defineConfig, type HtmlTagDescriptor, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
@@ -26,11 +26,17 @@ react(),
       figmaMakeKitPlugin({ storiesGlob: '/src/**/*.stories.{ts,tsx,js,jsx}' }),
     ],
     resolve: {
+      // Workspace packages (@turfhub/*) are used from source, so no build step is needed for the web app
+      conditions: ['source', ...defaultClientConditions],
       alias: {
         '@': path.resolve(__dirname, './src'),
       },
     },
     server: {
+      // Forward API calls to the Nest API in development (`pnpm dev` at the repo root)
+      proxy: {
+        '/api': `http://localhost:${process.env.API_PORT || 3000}`,
+      },
       host: process.env.FIGMA_DEV_SERVER_HOST || '0.0.0.0',
       port: parseInt(process.env.PORT || '8443'),
       strictPort: true,

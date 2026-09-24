@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 // Separate from vite.config.ts so tests don't load the Figma Make plugins
 export default defineConfig({
   plugins: [react()],
+  resolve: { conditions: ['source'] },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
