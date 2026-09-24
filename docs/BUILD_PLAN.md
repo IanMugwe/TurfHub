@@ -1,226 +1,280 @@
-# Turf: Build Plan, from Prototype to Working System
+# Turf: Build Plan
 
 **Inputs:**
 - [SRS](SRS) v1.2: what the product must do.
-- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): architecture, data model, booking rules, milestones M0–M10.
-- [`turf_figma/`](../turf_figma): the clickable UI prototype, used as the visual and interaction reference.
+- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): backend architecture, data model, booking rules and milestones M0–M10.
+- [`apps/web`](../apps/web): the web app. It started as the Figma Make prototype and is now the project's frontend codebase.
 
-**What this document adds:** the implementation plan was written before the UI existed. This plan connects the two. It lists the decisions the prototype raises, how the design becomes production code, which API each screen needs, and a build order with concrete tasks and exit checks. Architecture choices in the implementation plan (Next.js + NestJS monorepo, Postgres/PostGIS, Redis/BullMQ, Africa's Talking SMS) still apply and are not repeated here.
-
----
-
-## 1. Decisions raised by the prototype
-
-The implementation plan's D1–D11 still stand except where noted. Each row has a proposed default.
-
-| # | Decision | Proposed default | Affects |
-|---|----------|------------------|---------|
-| P1 | **One sign-in for everyone.** The prototype uses a single phone + OTP screen and sends each person to the right app based on who they are. | `POST /auth/otp/verify` returns the user plus their venue memberships. The client routes to the staff app when there is at least one membership, otherwise to the player app. **Changes D2:** owners and managers use OTP only in the MVP; password + 2FA applies to admins only. | M1 |
-| P2 | **People with both roles** (e.g. an owner who also plays). | Default to the staff app, with "Switch to player app" in More, and "Switch to venue" in Profile. The prototype has no switch yet, so it needs a small design addition. | M1, M7 |
-| P3 | **Unknown phone numbers.** | Signing in with a new number creates a `CUSTOMER` account (sign-up is sign-in). The name is asked on first booking, which Review booking already collects. Owners sign up through a separate "List your venue" flow (§5). | M1 |
-| P4 | **Manager restrictions.** The prototype hides Reports, pricing rules and team settings from managers. | Hide them in the UI **and** enforce on the server (venue-membership policy, implementation plan §2.9). Hiding a tab is not access control. | M1, M6 |
-| P5 | **Multiple venues.** Today's header has a venue switcher (▾). | The venue lives in the URL (`/v/[venueId]/…`). The last-used venue is remembered per device. | M2 |
-| P6 | **Dark mode.** | Follow `prefers-color-scheme` by default, with a manual override in More/Profile stored in `localStorage`. The tokens already exist (§2.1). | M0.5 |
-| P7 | **"Now".** The prototype fixes now at 15:00 on Tue 22 Sep. | The server's `Africa/Nairobi` time drives "Up next", the now-line, no-show gating and request countdowns. The client never does timezone arithmetic itself. | M4 |
-| P8 | **Request countdown.** "auto-declines in 1h 20m". | Store `expires_at` on `PENDING` bookings (the `expire-pending` job, implementation plan §2.6) and render the countdown from it. | M8 |
-| P9 | **Live updates.** Staff must see app bookings appear without refreshing. | Poll every 30 s on Today, Calendar and Requests while the tab is visible, plus refetch on focus. Server-sent events come later if polling is not enough. | M4, M8 |
+**What this document covers:** what is already built, the decisions that came out of building it, how `apps/web` grows from a mock-data prototype into the production frontend, which API each screen needs, and the remaining build order. The backend design in the implementation plan (NestJS, Postgres/PostGIS, Redis/BullMQ, Africa's Talking SMS) still applies and is not repeated here.
 
 ---
 
-## 2. Carrying the design into code
+## 1. Where things stand
 
-The prototype is a **reference, not a codebase to port**. It uses inline styles, mock data and a fixed phone frame. The production app rebuilds the same screens properly and reuses its tokens, components and copy.
+### 1.1 Repository
 
-### 2.1 Design tokens
-- Move the `@theme` block and the `[data-theme='dark']` block from `turf_figma/src/index.css` into `packages/ui/src/tokens.css`, and expose them through the shared Tailwind preset (`packages/config`).
-- Keep the token names (`--color-primary`, `--color-pending-bg`, `--color-noshow-border`, …) so screens map one-to-one.
-- Add `--radius-*`, the type scale from the brief (28/22/18/16/14/12) and `tabular-nums` for prices and stats.
+```
+TurfHub/
+├── apps/
+│   └── web/                 Vite + React 19 + Tailwind v4 (built)
+├── docs/                    SRS, plans, UI brief, Figma prompts
+├── package.json             pnpm workspace root (pnpm dev / build / typecheck)
+└── pnpm-workspace.yaml      apps/*, packages/*
+```
 
-### 2.2 Component kit (`packages/ui`)
-Extract from the prototype, rebuilt with Tailwind classes, accessible labels and 44 px touch targets:
+Still to come: `apps/api` (NestJS), `packages/database`, `packages/validation`, `packages/types`, and `infrastructure/` for docker-compose.
 
-| Component | Prototype source |
+### 1.2 Built so far (frontend, mock data only)
+
+Every screen below runs in the browser from `src/data.ts` sample data. None of it talks to a server yet.
+
+| Area | Screens built | Missing compared with the UI brief |
+|------|---------------|-----------------------------|
+| Sign in | Phone (+254) → 6-digit code, resend timer, wrong-code error. The number decides the app: owner, manager or player. | Real OTP, sessions, owner sign-up |
+| Staff: Today | Four stat cards, "Needs attention" with inline Accept/Reject, "Up next", loading skeleton | Venue switcher is decorative |
+| Staff: Calendar | Day view (pitch columns, peak shading, maintenance hatching, now-line), week view with a pitch selector, status colours, payment dots | Tapping an empty slot doesn't prefill the pitch and time; blocks aren't editable |
+| Staff: New booking | Pitch, time, duration, source chips, repeat weekly with a clash note, live peak/off-peak price, slot-conflict error | Customer suggestions while typing, notes field |
+| Staff: Booking detail | Status, call/WhatsApp, details, payment card, inline record payment (Cash/M-Pesa/Other, M-Pesa code, waive), weekly-series scope, no-show only after the start time | List of recorded payments, Move/Extend flows, cancel confirmation |
+| Staff: Requests | Requests screen with no-show history, auto-decline countdown, Accept/Reject, "All caught up" empty state | — |
+| Staff: Customers | Search, list with no-show and flag markers, empty state, customer detail (stats, history, notes, flag, "New booking for this customer") | — |
+| Staff: Reports | Date range chips, revenue by day split by method, outstanding list, occupancy heatmap, top 5 customers, Export CSV button | Bookings by source (donut), no-show rate, pitch filter |
+| Staff: More | Settings list, pending-approval banner, dark mode toggle, sign out. Managers don't see pricing rules or the team section, and Reports is hidden from them. | Every sub-page (venue details, pitches, hours, pricing, blocks, team) |
+| Player | Explore (search, filters, list), venue page (gallery, pitch tabs, day strip, slot grid), review, confirmation (confirmed or pending), my bookings (upcoming, past, cancelled), profile, sign out | Map view (the toggle does nothing), favourites, first-booking name capture |
+| Cross-cutting | Design tokens with light and dark themes, empty/loading/error states, 390 px phone frame | URL routing, real data, tests, lint, accessibility pass |
+
+### 1.3 Technical debt in `apps/web`
+
+These came from the prototype and are fixed in F0 (§4):
+
+- **Navigation is component state.** There are no URLs, so the back button, deep links and refresh don't work.
+- **Styling is mostly inline `style={{}}`.** The colour tokens exist in `src/index.css`, but components don't use Tailwind classes.
+- **Duplicated UI.** Headers, sheets, toggles and chips are copied between screens instead of shared.
+- **Loose typing.** There are several `as any` casts (`CustomerApp.tsx`, `MoreScreen.tsx`, `App.tsx` tab icons).
+- **Fake "now" and phone frame.** The fixed "now" (`NOW_HOUR = 15`) and the 390 px frame in `App.tsx` exist only for the prototype.
+- **Figma Make leftovers.** The Figma Make plugins in `vite.config.ts` and `.figma/` are needed only while design still happens in Figma Make.
+
+---
+
+## 2. Decisions
+
+The implementation plan's D1–D11 still stand, except that **the web stack changes from Next.js to Vite + React** (W1). The new decisions have proposed defaults.
+
+| # | Decision | Proposed default |
+|---|----------|------------------|
+| W1 | **Web stack** | Keep `apps/web` on Vite + React as a single-page app. Use **React Router** for URLs and **TanStack Query** for server data. Host it as static files (Vercel, Netlify or Cloudflare Pages). |
+| W2 | **Search engines and link previews for public venue pages** (the SRS wants venues discoverable) | Ship the SPA first. In M7, add server rendering only for `/venues/:slug`, either with Vike (Vite's SSR layer) or by having the API serve those pages' `<title>`/OpenGraph tags. Staff pages never need it. |
+| P1 | **One sign-in for everyone** (already built as a mock) | `POST /auth/otp/verify` returns the user and their venue memberships. People with a membership go to the staff app; everyone else goes to the player app. **This changes D2:** owners and managers use OTP only in the MVP, and password + 2FA applies to admins only. |
+| P2 | **People with both roles** | Default to the staff app. Add "Switch to player app" in More and "Switch to venue" in Profile. This needs a small design addition. |
+| P3 | **New phone numbers** | Signing in with a new number creates a `CUSTOMER` account. Owners sign up through a separate "List your venue" flow. |
+| P4 | **Manager limits** (already hidden in the UI) | Also enforce them on the server with the venue-membership policy. Hiding a tab is not access control. |
+| P5 | **Multiple venues** | The venue goes in the URL (`/v/:venueId/…`). Remember the last-used venue on the device. |
+| P6 | **Dark mode** (already built) | Default to the system setting, with the manual override stored in `localStorage`. |
+| P7 | **"Now"** | Server time in `Africa/Nairobi` drives Up next, the now-line, no-show gating and countdowns. Remove `NOW_HOUR`. |
+| P8 | **Request countdown** (already built) | Render it from `expires_at` on `PENDING` bookings, which the `expire-pending` job sets. |
+| P9 | **Live updates** | Poll every 30 s on Today, Calendar and Requests while visible, and refetch when the tab regains focus. Add server-sent events only if polling isn't enough. |
+
+---
+
+## 3. Frontend architecture
+
+### 3.1 Folder structure (target for `apps/web/src`)
+
+```
+src/
+├── app/              router, providers (QueryClient, session, theme), layouts
+├── features/
+│   ├── auth/         SignInScreen, useSession
+│   ├── today/  calendar/  bookings/  requests/  customers/  reports/  settings/
+│   └── player/       explore, venue, booking flow, my bookings, profile
+├── ui/               shared components (§3.2) and tokens
+├── api/              typed client + TanStack Query hooks per resource
+└── lib/              format helpers (KES, +254 phones, dates, time ranges)
+```
+
+Move the existing screens into `features/*` as they are. Only restyle them when a feature is being wired to the API, so nothing breaks in one big rewrite.
+
+### 3.2 Shared UI (`src/ui`, later `packages/ui` if a second app needs it)
+
+| Component | Where it comes from |
 |-----------|------------------|
 | `StatusPill`, `PayPill` | `components/Pill.tsx` |
-| `StatCard` | `components/StatCard.tsx` |
-| `EmptyState`, `Skeleton` | `components/EmptyState.tsx`, `components/Skeleton.tsx` |
-| `BottomSheet` (overlay, handle, focus trap, swipe to close) | pattern in `NewBookingSheet.tsx`, `BookingDetailSheet.tsx` |
+| `StatCard`, `EmptyState`, `Skeleton` | `components/` (already shared) |
+| `BottomSheet` (overlay, handle, focus trap, Escape/swipe to close) | the pattern in `NewBookingSheet.tsx` and `BookingDetailSheet.tsx` |
 | `TabBar`, `BackHeader`, `Fab` | `App.tsx`, `CustomerApp.tsx`, detail screens |
-| `SegmentedControl`, `Chip`, `Toggle`, `Stepper` | calendar Day/Week, source chips, repeat toggle and weeks stepper |
-| `PhoneInput` (+254), `OtpInput` (6 boxes, paste, autofill) | `SignInScreen.tsx` |
-| `Money`, `TimeRange`, `DateLabel` | formatting used everywhere |
+| `SegmentedControl`, `Chip`, `Toggle`, `Stepper` | calendar Day/Week, source chips, repeat toggle, weeks stepper |
+| `PhoneInput`, `OtpInput` | `SignInScreen.tsx` |
+| `Money`, `TimeRange`, `DateLabel` | formatting repeated across screens |
 
-Formatting and parsing helpers go in `packages/validation` so web and API share them: `formatKES(2500) → "KES 2,500"`, `normalizePhoneKE("0712 345 678") → "+254712345678"`, `formatPhoneKE`, `formatDay → "Tue 22 Sep"`, `formatTimeRange → "19:00–20:00"`.
+Components move from inline styles to Tailwind classes that use the existing tokens (`bg-surface`, `text-muted`, `border-noshow-border`, …). The tokens in `src/index.css` stay the single source of truth for colours in both themes.
 
-### 2.3 Routes (Next.js App Router)
+### 3.3 Routes
 
 ```
-/login                              Sign in (phone → code) → routed by role (P1)
+/login                              Sign in → routed by role (P1)
 
-/v/[venueId]/today                  Staff: Today
-/v/[venueId]/calendar               Calendar (?date=, ?view=week&turf=)
-/v/[venueId]/requests               Booking requests
-/v/[venueId]/customers              Customers
-/v/[venueId]/customers/[phone]      Customer detail
-/v/[venueId]/reports                Reports (owners only)
-/v/[venueId]/more/...               Settings sub-pages
-   ?booking=TRF-4K7Q                Booking detail sheet (shareable, back button closes it)
-   ?new=1&turf=A&start=18:00        New booking sheet, prefilled from a tapped slot
+/v/:venueId/today                   Staff
+/v/:venueId/calendar                ?date=&view=week&turf=
+/v/:venueId/requests
+/v/:venueId/customers
+/v/:venueId/customers/:phone
+/v/:venueId/reports                 owners only
+/v/:venueId/settings/...
+   ?booking=TRF-4K7Q                booking detail sheet (shareable; back closes it)
+   ?new=1&turf=A&start=18:00        new booking sheet, prefilled from a tapped slot
 
-/explore                            Player: Explore (list / map)
-/venues/[slug]                      Venue page + slot picker
-/book/review                        Review booking
-/book/[ref]                         Confirmation
-/bookings                           My bookings (upcoming / past / cancelled)
-/profile                            Profile
-
-/admin/...                          Admin console (desktop, M9)
+/explore                            Player
+/venues/:slug
+/book/review
+/book/:ref
+/bookings
+/profile
 ```
 
-Middleware reads the session cookie. It sends signed-out users to `/login` and returns `404` for staff routes when the user has no membership for that venue.
+Route guards redirect signed-out users to `/login`. Venue routes require a membership for that venue, and `/reports` requires the owner role. The server enforces the same rules (P4).
 
-### 2.4 Data layer
-- Use TanStack Query over the typed API client generated from the shared Zod schemas (implementation plan §2.10).
-- Apply **optimistic updates** to Accept/Reject, Record payment and Flag customer, with rollback and a toast on failure.
-- Show skeletons on first load, as Today does in the prototype. Never show a spinner on a full screen.
-- A `409 SLOT_UNAVAILABLE` from the API renders the conflict banner already designed in New booking ("That slot was just taken — pick another time") and refetches the calendar.
+### 3.4 Data
 
----
-
-## 3. Screen → API map
-
-All routes are under `/api/v1`. "Venue" routes check venue membership, and routes marked *owner* check the `OWNER` role.
-
-| Screen | Endpoints | Milestone |
-|--------|-----------|-----------|
-| Sign in | `POST /auth/otp/request` · `POST /auth/otp/verify` → `{ user, memberships[] }` · `POST /auth/refresh` · `POST /auth/logout` · `GET /me` | M1 |
-| Today | `GET /venues/:id/today` → stats, requests needing attention, past unpaid, up next | M6 (basic version in M4) |
-| Calendar (day/week) | `GET /venues/:id/calendar?from&to&turf` → bookings, blocked periods, peak bands, now | M4 |
-| New booking sheet | `GET /venues/:id/customers/suggest?q=` · `POST /venues/:id/quote` → price, peak flag, clashes (incl. repeat weeks) · `POST /venues/:id/bookings` (optional `repeatWeeks`) | M4 |
-| Booking detail | `GET /bookings/:ref` · `PATCH /bookings/:ref` (move/extend, `scope=one\|following`) · `POST /bookings/:ref/cancel` · `POST /bookings/:ref/no-show` | M4, M5 |
-| Record payment | `POST /bookings/:ref/payments` · `POST /payments/:id/void` · `POST /bookings/:ref/waive` | M5 |
-| Booking requests | `GET /venues/:id/requests` · `POST /bookings/:ref/accept` · `POST /bookings/:ref/reject` | M8 |
-| Customers / detail | `GET /venues/:id/customers?q&cursor` · `GET /venues/:id/customers/:phone` · `PUT …/notes` · `PUT …/flag` | M5 |
-| Reports *(owner)* | `GET /venues/:id/reports/{revenue,outstanding,occupancy,sources,top-customers}?from&to&turf` · `GET …/export.csv` | M6 |
-| More | venue, turfs, hours, overrides, pricing rules *(owner)*, blocked periods, booking settings, members *(owner)* | M1–M3 |
-| Explore | `GET /venues/search?q&lat&lng&radiusKm&type&date&time` | M7 |
-| Venue page | `GET /venues/:slug` · `GET /turfs/:id/availability?date` | M7 |
-| Review → Confirmation | `POST /bookings` (player) → `CONFIRMED` or `PENDING` with `expiresAt` | M8 |
-| My bookings | `GET /me/bookings?tab=upcoming\|past\|cancelled` · `POST /me/bookings/:ref/cancel` | M8 |
-| Profile | `GET/PATCH /me` · `PUT /me/notification-preferences` | M8 |
+- A typed API client is generated from the shared Zod schemas (`packages/validation`). Each resource gets its own TanStack Query hooks (`useCalendar`, `useRecordPayment`, …).
+- These actions update the screen straight away and roll back with a toast if the server rejects them: Accept/Reject, Record payment, Flag customer.
+- A `409 SLOT_UNAVAILABLE` shows the conflict banner that New booking already has and refetches the calendar.
+- `src/data.ts` becomes the seed data for `packages/database` and for tests, then leaves the app.
 
 ---
 
 ## 4. Build order
 
-This keeps the implementation plan's milestones and inserts **M0.5 UI kit**, so every later milestone builds screens from finished parts. Durations are rough and assume **one full-stack developer**. Two developers working in parallel (one on the API, one on the web app) would roughly halve the calendar time from M2 onwards.
+**F0** is new and turns the prototype into a production frontend. **M0–M10** follow the implementation plan, with each milestone now wiring existing screens to the API instead of designing them from scratch. Durations are rough and assume **one full-stack developer**. A second developer working on the API in parallel would roughly halve the time from M2 onwards.
 
-### M0: Foundations (≈1 week)
-- Monorepo (pnpm + Turborepo), `apps/web`, `apps/api`, `packages/{database,validation,types,ui,config}`.
-- docker-compose with `postgis/postgis:16` and `redis:7`, Prisma, CI (lint → typecheck → test).
-- **Exit:** `pnpm dev` starts web + API + DB + Redis; CI is green on a PR.
+| Milestone | Status |
+|-----------|--------|
+| UI design and clickable prototype | **Done** |
+| Repo as pnpm workspace, web app in `apps/web` | **Done** |
+| F0 → M10 | To do |
 
-### M0.5: UI kit (≈1 week)
-- Tokens (§2.1) and components (§2.2), each with a light/dark preview page (`/dev/kit`, dev builds only).
-- Format helpers with unit tests (KES, +254 phones, dates, time ranges).
-- **Exit:** the Today screen can be built from kit components with mock data and matches the prototype side by side in both themes.
+### F0: Frontend foundations (≈1 week)
+- React Router with the routes in §3.3; replace the state-based navigation in `App.tsx` and `CustomerApp.tsx`.
+- Move screens into `features/*`, extract `src/ui` (§3.2), and remove the `as any` casts.
+- ESLint, Vitest with Testing Library, and a CI workflow (typecheck → lint → test → build).
+- Remove the phone frame on real devices (keep it only on wide desktop screens as a preview) and `NOW_HOUR`.
+- Decide whether design keeps happening in Figma Make. If not, drop the Figma plugins from `vite.config.ts` and delete `.figma/`, `AGENTS.md` and `CLAUDE.md` from `apps/web`.
+- **Exit:** every screen has a URL, back and refresh work, CI is green.
+
+### M0: Backend foundations (≈1 week)
+- `apps/api` (NestJS), `packages/{database,validation,types}`, docker-compose (`postgis/postgis:16`, `redis:7`), Prisma, `/api/v1` health check.
+- Vite dev proxy from `/api` to the API.
+- **Exit:** `pnpm dev` starts web + API + DB + Redis, and the web app shows the API's health status.
 
 ### M1: Auth, roles and routing (≈1.5 weeks)
-- OTP request/verify (Redis, hashed, 5-min TTL, rate limits), refresh rotation, logout (implementation plan §2.9).
-- Venue membership and the policy guard. Owner registration stub, manager invite by phone.
-- Web: `/login` from `PhoneInput` + `OtpInput`, role routing (P1–P3), middleware, sign out from More and Profile.
-- **Exit:** an owner's number lands on Today; a manager's number lands on Today without the Reports tab, and `GET /reports/*` returns `403`; an unknown number lands on Explore.
+- OTP request/verify, refresh rotation, logout, venue membership, policy guard, manager invites (implementation plan §2.9).
+- Wire the existing sign-in screen to the API. The mock `sessionForPhone` becomes `GET /me`.
+- **Exit:** an owner lands on Today; a manager lands on Today without Reports, and `GET /reports/*` returns `403`; a new number lands on Explore.
 
 ### M2: Venues and turfs (≈1.5 weeks)
-- Venue and turf CRUD, image upload (presigned URL + `process-image` job), approval status and banner ("Pending approval — customers can't see your venue yet").
-- More › Venue details, Pitches, and the venue switcher (P5).
+- Venue and turf CRUD, image upload with the `process-image` job, approval status. The pending-approval banner uses real status.
+- **Build** the Settings › Venue details and Pitches pages, and the working venue switcher (P5).
 - **Exit:** an owner sets up a venue with three pitches and photos from a phone.
 
 ### M3: Availability and pricing (≈1.5 weeks)
-- Operating hours, date overrides, pricing rules, blocked periods. The pure slot-generation function (implementation plan §2.3) with its edge-case tests.
-- More › Opening hours, Pricing rules, Blocked periods.
-- **Exit:** the quote endpoint returns the right price and peak flag for any turf and time, including overlapping rules.
+- Hours, overrides, pricing rules, blocked periods, and the slot-generation function with edge-case tests.
+- **Build** the Settings › Opening hours, Pricing rules and Blocked periods pages.
+- **Exit:** the quote endpoint gives the right price and peak flag for any turf and time.
 
-### M4: Calendar and bookings (≈3 weeks)
-- Exclusion-constraint migration, the booking state machine, recurring series.
-- Calendar day and week views: turf columns, peak shading, hatched blocks, now-line, tap an empty slot to open New booking prefilled.
-- New booking sheet with customer suggestions, live quote, repeat weekly and clash list. Booking detail with move, extend, cancel and series scope.
-- Basic Today (up next + counts). Polling (P9).
-- **Concurrency suite:** 50 parallel bookings on one slot, exactly one succeeds.
-- **Exit:** a manager runs a full evening of walk-ins and phone bookings from a phone, with no paper book.
+### M4: Calendar and bookings (≈2.5 weeks, less than before because the UI exists)
+- Exclusion constraint, state machine, recurring series, concurrency suite (implementation plan §2.2, M4).
+- **Wire** Calendar, New booking and Booking detail. **Add** a slot tap that prefills the sheet, customer suggestions, a notes field, Move/Extend and cancel confirmation.
+- **Exit:** a manager runs a full evening of walk-ins and phone bookings from a phone.
 
 ### M5: Payments, customers and no-shows (≈1.5 weeks)
-- Record, void and waive payments; payment badges everywhere; completion job; no-show only after start time.
-- Customers list and detail: stats, history, notes, flag, "New booking for this customer". No-show rule (D5).
+- **Wire** record/void/waive payments, the customer list and detail, notes and flags. **Add** the recorded-payments list and void-with-reason.
 - **Exit:** at close of day, staff can see what was played, paid, unpaid or a no-show.
 
-### M6: Today and reports (≈1.5 weeks)
-- Full Today: four stat cards, "Needs attention", "Up next".
-- Reports: revenue by method (stacked bars), outstanding, occupancy heatmap, sources donut, no-show rate, top customers, CSV export. Owner-only on the server.
-- **Exit:** this is the **owner-only pilot gate**. Pilot venues start using Turf for their own bookings (implementation plan M10 stage 1).
+### M6: Today and reports (≈1 week)
+- **Wire** Today and Reports. **Add** the bookings-by-source donut, no-show rate and pitch filter. Make the CSV export work.
+- **Exit:** **owner-only pilot gate.** Pilot venues start running their bookings in Turf.
 
 ### M7: Player discovery (≈2 weeks)
-- Search, near-me (PostGIS), filters, list and map (MapLibre), venue page with gallery, pitch tabs and the slot grid (booked slots struck through, peak slots marked).
-- Server-rendered venue pages with optimised images.
-- **Exit:** a player on a mobile connection finds a free nearby slot in under 30 s; Lighthouse mobile performance ≥ 85.
+- Search, near-me (PostGIS), filters. **Wire** Explore and the venue page. **Build** the map view (MapLibre).
+- Server rendering or meta tags for `/venues/:slug` (W2).
+- **Exit:** a player finds a free nearby slot in under 30 s on a mobile connection; Lighthouse mobile performance ≥ 85.
 
-### M8: Player booking, requests and SMS (≈2 weeks)
-- Player booking (auto-confirm or request), Review and Confirmation screens, My bookings with the cancellation window (D6).
-- Booking requests screen with no-show history and countdown (P8), plus the `expire-pending` job.
-- SMS outbox: confirmation, request, accepted/rejected, reminder, cancellation.
-- **Exit:** the e2e journey search → book → SMS → staff accept → reminder passes, and the app booking shows on the staff calendar within 30 s.
+### M8: Player booking, requests and SMS (≈1.5 weeks)
+- **Wire** Review, Confirmation, My bookings, Profile and the Requests screen. Add the `expire-pending` job and the SMS outbox.
+- **Exit:** search → book → SMS → staff accept → reminder works end to end, and the booking appears on the staff calendar within 30 s.
 
-### M9: Admin console (≈1.5 weeks)
-- Venue approval queue, users/owners/venues management, disputes log, audit viewer, platform reports, onboarding a venue for an owner.
-- **Needs design first** (brief section C). See §5.
+### M9: Admin console (≈2 weeks, design first)
+- The admin console is not designed yet (UI brief section C). Design it first, then build it as a separate route tree, `/admin`.
 - **Exit:** every admin action appears in the audit log.
 
 ### M10: Hardening and pilot (≈2 weeks)
-- As in the implementation plan: security review with authz tests on every endpoint (manager vs owner vs player), load tests, backups with a tested restore, tracing, alerts.
-- Accessibility pass: contrast in both themes, focus order in sheets, screen-reader labels on pills and icons.
+- Security review with an authorization test for every endpoint, load tests, backups with a tested restore, monitoring.
+- Accessibility pass: contrast in both themes, focus handling in sheets, labels on pills and icons.
 - **Exit:** pilot venues use Turf as their only booking record for 2 weeks, then player booking is switched on.
 
-**Total:** about **20 weeks** for one developer, including the owner-only pilot starting after M6 (about week 12).
+**Total:** about **18 weeks** for one developer (the prototype saved about two). The owner-only pilot can start after M6, around week 11.
 
 ```
-M0 → M0.5 → M1 → M2 → M3 → M4 → M5 → M6 ─┬→ M7 → M8 → M9 → M10
-                                          └ owner-only pilot starts
+F0 → M0 → M1 → M2 → M3 → M4 → M5 → M6 ─┬→ M7 → M8 → M9 → M10
+                                        └ owner-only pilot starts
 ```
 
 ---
 
 ## 5. Design still needed
 
-The prototype covers the daily-use screens. These are still missing, and should be designed before the milestone that needs them:
-
 | Needed by | Screen or flow |
 |-----------|----------------|
-| M1 | Owner sign-up / "List your venue" onboarding (venue, first pitch, hours, price); role switch for people with both roles (P2); manager invite and accept |
-| M2–M3 | More sub-pages: venue details editor with map pin and photos, pitch editor, opening hours with overrides, pricing rules, blocked periods, booking settings |
-| M4 | Move and Extend flows; cancel confirmation (single vs series); a standalone Record payment sheet (it is inline in the prototype) |
-| M5 | Void payment with reason; payment history list inside booking detail |
-| M7–M8 | Map view on Explore; first-booking name capture; "slot was just taken" on Review; player cancel confirmation; SMS copy for every notification |
-| M9 | Admin console (desktop): approval queue, venue and user management, disputes, audit log |
+| M1 | Owner sign-up / "List your venue"; role switch (P2); manager invite and accept |
+| M2–M3 | Settings pages: venue details with map pin and photos, pitch editor, opening hours with overrides, pricing rules, blocked periods, booking settings |
+| M4 | Move and Extend; cancel confirmation (single vs series); customer suggestions in New booking |
+| M5 | Recorded-payments list; void payment with reason |
+| M7–M8 | Map view on Explore; first-booking name capture; "slot was just taken" on Review; player cancel confirmation; SMS wording |
+| M9 | Admin console (desktop) |
 | All | Offline and network-error states; 403/404 pages |
 
 ---
 
-## 6. Testing additions
+## 6. Screen → API map
 
-These add to the implementation plan's §5:
+All routes are under `/api/v1`. Venue routes check membership, and routes marked *owner* check the owner role.
 
-- **Playwright journeys that mirror the prototype walkthrough,** on Pixel and iPhone viewports:
-  - sign in as owner → accept a request → create a walk-in → hit a slot conflict → record an M-Pesa payment → mark a no-show;
-  - sign in as manager → confirm Reports and pricing are absent;
-  - sign in as player → book → cancel.
-- **Authorization matrix test:** every endpoint × {owner, manager of this venue, manager of another venue, player, signed out}, with the expected status codes. This is generated from a single table so new endpoints can't be forgotten.
-- **Visual check of kit components** in light and dark mode (Playwright screenshots) to catch token regressions.
+| Screen (`apps/web/src/…`) | Endpoints | Milestone |
+|--------|-----------|-----------|
+| Sign in (`screens/SignInScreen.tsx`) | `POST /auth/otp/request` · `POST /auth/otp/verify` → `{ user, memberships[] }` · `POST /auth/refresh` · `POST /auth/logout` · `GET /me` | M1 |
+| Today (`screens/TodayScreen.tsx`) | `GET /venues/:id/today` | M6 (basic in M4) |
+| Calendar (`screens/CalendarScreen.tsx`) | `GET /venues/:id/calendar?from&to&turf` | M4 |
+| New booking (`components/NewBookingSheet.tsx`) | `GET /venues/:id/customers/suggest?q=` · `POST /venues/:id/quote` · `POST /venues/:id/bookings` (optional `repeatWeeks`) | M4 |
+| Booking detail (`components/BookingDetailSheet.tsx`) | `GET /bookings/:ref` · `PATCH /bookings/:ref` (`scope=one\|following`) · `POST /bookings/:ref/cancel` · `POST /bookings/:ref/no-show` · `POST /bookings/:ref/payments` · `POST /payments/:id/void` · `POST /bookings/:ref/waive` | M4, M5 |
+| Requests (`screens/BookingRequestsScreen.tsx`) | `GET /venues/:id/requests` · `POST /bookings/:ref/accept` · `POST /bookings/:ref/reject` | M8 |
+| Customers (`screens/CustomersScreen.tsx`, `CustomerDetailScreen.tsx`) | `GET /venues/:id/customers?q&cursor` · `GET /venues/:id/customers/:phone` · `PUT …/notes` · `PUT …/flag` | M5 |
+| Reports *(owner)* (`screens/ReportsScreen.tsx`) | `GET /venues/:id/reports/{revenue,outstanding,occupancy,sources,top-customers}?from&to&turf` · `GET …/export.csv` | M6 |
+| More (`screens/MoreScreen.tsx`) | venue, turfs, hours, overrides, pricing rules *(owner)*, blocked periods, settings, members *(owner)* | M1–M3 |
+| Explore (`customer/ExploreScreen.tsx`) | `GET /venues/search?q&lat&lng&radiusKm&type&date&time` | M7 |
+| Venue page (`customer/VenuePage.tsx`) | `GET /venues/:slug` · `GET /turfs/:id/availability?date` | M7 |
+| Review → Confirmation (`customer/ReviewBooking.tsx`, `ConfirmationScreen.tsx`) | `POST /bookings` → `CONFIRMED` or `PENDING` with `expiresAt` | M8 |
+| My bookings (`customer/MyBookingsScreen.tsx`) | `GET /me/bookings?tab=upcoming\|past\|cancelled` · `POST /me/bookings/:ref/cancel` | M8 |
+| Profile (`customer/ProfileScreen.tsx`) | `GET/PATCH /me` · `PUT /me/notification-preferences` | M8 |
+
+File paths are the current ones. They move under `features/*` in F0.
 
 ---
 
-## 7. Housekeeping before M0
+## 7. Testing
 
-- The SRS has been moved to `docs/SRS` locally, but the move isn't committed. Commit it, and fix the `../SRS` link at the top of `IMPLEMENTATION_PLAN.md`.
-- Commit or discard the other untracked design files: `docs/FIGMA_UI_BRIEF.md`, `docs/FIGMA_MAKE_PROMPTS.md`, `docs/Football Management System/` (an older generated dashboard that the new prototype replaces) and `turf_figma.zip`. Add `.DS_Store` to `.gitignore`.
-- Keep `turf_figma/` as the design reference until M0.5 is done, then move it to `docs/design/prototype/` so it isn't mistaken for the product code.
-- Confirm P1–P9 above (and D1–D11 if not already confirmed) before M1 starts.
+Adds to the implementation plan's §5:
+
+- **Component tests** (Vitest + Testing Library) for `src/ui` and the format helpers, starting in F0.
+- **Playwright journeys** on Pixel and iPhone viewports:
+  - Owner: accept a request → create a walk-in → hit a slot conflict → record an M-Pesa payment → mark a no-show.
+  - Manager: confirm Reports and pricing are absent and blocked.
+  - Player: book → cancel.
+- **Authorization matrix:** every endpoint × {owner, manager of this venue, manager of another venue, player, signed out}, generated from one table so new endpoints can't be missed.
+- **Visual snapshots** of `src/ui` components in light and dark mode to catch token regressions.
+
+---
+
+## 8. Housekeeping
+
+- [x] SRS moved to `docs/SRS`.
+- [x] Prototype promoted to `apps/web`, repo turned into a pnpm workspace.
+- [ ] Confirm W1–W2 and P1–P9 before F0 and M1.
+- [ ] Decide whether to keep `docs/Football Management System/`. It's an older generated dashboard that `apps/web` replaces, so it can probably be deleted.

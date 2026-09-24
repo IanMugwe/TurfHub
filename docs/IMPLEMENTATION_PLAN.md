@@ -1,6 +1,8 @@
 # Turf — MVP Implementation Plan
 
-**Source:** [SRS](../SRS) v1.1
+**Source:** [SRS](SRS) v1.2
+
+> **Status (update):** the UI is designed and the frontend is built with mock data in `apps/web` (Vite + React, not Next.js). The web stack decision and the frontend build order live in [BUILD_PLAN.md](BUILD_PLAN.md), which adds a frontend milestone (F0) before M0. The backend design below is unchanged.
 **Scope:** MVP, focused on **turf management**. Online payment (M-Pesa, SRS §12, §26) is **deferred**. Players today pay at the venue after playing, and asking them to pay upfront would slow adoption. Turf records payments taken at the venue and keeps the data model ready for online payment later. The 3D map (SRS §18–21) is also out of scope.
 
 **Why management comes first:** an owner can run their turf on Turf, with bookings, walk-ins, payments and reports, before any customers use the app. Owners get value on day one, and customer-facing discovery launches with real, accurate availability instead of an empty catalogue.
@@ -23,7 +25,7 @@ Each decision has a proposed default so work can start. Please confirm or change
 | D8 | Recurring bookings (SRS §3.2 lists these as future scope) | **Pull into the MVP on the owner side only.** "Repeat weekly for N weeks" when staff create a booking, because regular teams are common. | M4 |
 | D9 | SMS provider | Africa's Talking | M1 |
 | D10 | Map provider | MapLibre GL + OpenStreetMap-based tiles, for cost and to avoid lock-in. | M7 |
-| D11 | Hosting | Web on Vercel. API + worker as containers on Fly.io/Render/Railway. Managed Postgres with PostGIS. Managed Redis. | M0 |
+| D11 | Hosting | Web as a static site (Vercel, Netlify or Cloudflare Pages). API + worker as containers on Fly.io/Render/Railway. Managed Postgres with PostGIS. Managed Redis. | M0 |
 
 ---
 
@@ -32,7 +34,7 @@ Each decision has a proposed default so work can start. Please confirm or change
 ```
 turfhub/
 ├── apps/
-│   ├── web/            Next.js (App Router) + Tailwind: owner/staff, customer and admin UIs
+│   ├── web/            Vite + React + Tailwind v4 (built): owner/staff, customer and admin UIs
 │   └── api/            NestJS REST API, with a second entrypoint for the BullMQ worker
 ├── packages/
 │   ├── database/       Prisma schema, migrations (incl. raw SQL), seed, client export
@@ -183,7 +185,7 @@ Owner and staff features come first (M1–M6), then customer-facing features (M7
 ### M0: Foundations (S)
 - Monorepo scaffold, shared config, docker-compose (PostGIS + Redis), Prisma setup, CI pipeline.
 - NestJS skeleton: config validation, logging, error format, health check, `/api/v1` prefix, Sentry.
-- Next.js skeleton: Tailwind preset, base layout, mobile nav, API client.
+- Web: already exists in `apps/web`. Add the API client and a dev proxy to the API (see BUILD_PLAN.md, F0 and M0).
 - **Exit:** `pnpm dev` runs web + api + db + redis locally, and CI is green.
 
 ### M1: Authentication, owners and staff (M)
@@ -227,7 +229,7 @@ Owner and staff features come first (M1–M6), then customer-facing features (M7
 
 ### M7: Customer discovery (M)
 - Search by text or area, near-me (PostGIS), filters (price, turf type, date and time using the availability engine).
-- Venue and turf profile pages rendered on the server, with live availability, optimized images and a map with directions (D10).
+- Venue and turf profile pages (server-rendered or with API-served meta tags, BUILD_PLAN.md W2), with live availability, optimized images and a map with directions (D10).
 - **Exit:** a customer on a mobile connection finds a nearby free slot in under 30 s. The Lighthouse mobile performance score is 85 or higher.
 
 ### M8: Customer booking and notifications (M)
