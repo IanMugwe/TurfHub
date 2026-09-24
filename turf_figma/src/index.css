@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  --color-primary: #0F7A3D;
+  --color-primary-dark: #0a5f2f;
+  --color-primary-light: #e8f5ee;
+  --color-accent: #B6F23A;
+  --color-accent-dark: #96d41e;
+
+  --color-bg: #F7F8F7;
+  --color-surface: #ffffff;
+  --color-surface-2: #F0F2F0;
+  --color-border: #E5E7EB;
+  --color-text: #111827;
+  --color-muted: #6B7280;
+  --color-muted-light: #9CA3AF;
+
+  --color-confirmed: #0F7A3D;
+  --color-confirmed-bg: #e8f5ee;
+  --color-pending: #D97706;
+  --color-pending-bg: #fef3c7;
+  --color-completed: #6B7280;
+  --color-completed-bg: #f3f4f6;
+  --color-noshow: #DC2626;
+  --color-noshow-bg: #fee2e2;
+
+  --color-unpaid: #DC2626;
+  --color-unpaid-bg: #fee2e2;
+  --color-partpaid: #D97706;
+  --color-partpaid-bg: #fef3c7;
+  --color-paid: #0F7A3D;
+  --color-paid-bg: #e8f5ee;
+  --color-waived: #6B7280;
+  --color-waived-bg: #f3f4f6;
+
+  --color-peak: #FFF7ED;
+  --color-peak-border: #fed7aa;
+  --color-peak-text: #c2410c;
+
+  --color-pending-border: #fde68a;
+  --color-pending-strong: #92400e;
+  --color-noshow-border: #fca5a5;
+  --color-whatsapp: #15803d;
+  --color-whatsapp-bg: #dcfce7;
+  --color-skeleton: #E9ECEA;
+}
+
+/* Dark mode: set data-theme="dark" on the phone frame */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-primary: #179A4E;
+  --color-primary-dark: #0F7A3D;
+  --color-primary-light: rgba(34, 197, 94, 0.14);
+
+  --color-bg: #0B0F0D;
+  --color-surface: #151B18;
+  --color-surface-2: #1C2420;
+  --color-border: #26302B;
+  --color-text: #F3F4F6;
+  --color-muted: #9CA3AF;
+  --color-muted-light: #6B7280;
+
+  --color-confirmed: #3FBF73;
+  --color-confirmed-bg: rgba(63, 191, 115, 0.15);
+  --color-pending: #F59E0B;
+  --color-pending-bg: rgba(245, 158, 11, 0.14);
+  --color-completed: #9CA3AF;
+  --color-completed-bg: rgba(156, 163, 175, 0.14);
+  --color-noshow: #F87171;
+  --color-noshow-bg: rgba(248, 113, 113, 0.14);
+
+  --color-unpaid: #F87171;
+  --color-unpaid-bg: rgba(248, 113, 113, 0.14);
+  --color-partpaid: #F59E0B;
+  --color-partpaid-bg: rgba(245, 158, 11, 0.14);
+  --color-paid: #3FBF73;
+  --color-paid-bg: rgba(63, 191, 115, 0.15);
+  --color-waived: #9CA3AF;
+  --color-waived-bg: rgba(156, 163, 175, 0.14);
+
+  --color-peak: rgba(251, 146, 60, 0.07);
+  --color-peak-border: rgba(251, 146, 60, 0.35);
+  --color-peak-text: #FB923C;
+
+  --color-pending-border: rgba(245, 158, 11, 0.35);
+  --color-pending-strong: #FCD34D;
+  --color-noshow-border: rgba(248, 113, 113, 0.4);
+  --color-whatsapp: #4ADE80;
+  --color-whatsapp-bg: rgba(74, 222, 128, 0.14);
+  --color-skeleton: #222B27;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; }
