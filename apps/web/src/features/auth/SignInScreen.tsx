@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { sessionForPhone } from '../../mocks/data'
+import { DEMO_OTP_CODE, OTP_MODE } from '../../lib/otpConfig'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 import type { Session } from '../../types'
 
-const DEMO_CODE = '123456'
 
 export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) => void }) {
   const [step, setStep] = useState<'phone' | 'code'>('phone')
@@ -30,6 +30,11 @@ export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) 
   }
 
   function sendCode() {
+    // Testing bypass: sign in without a code (VITE_OTP_MODE=skip)
+    if (OTP_MODE === 'skip') {
+      onSignedIn(sessionForPhone(`+254 ${phone}`))
+      return
+    }
     setStep('code')
     setResendIn(45)
     setCode(Array(6).fill(''))
@@ -57,7 +62,7 @@ export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) 
   }
 
   function signIn() {
-    if (code.join('') === DEMO_CODE) onSignedIn(sessionForPhone(`+254 ${phone}`))
+    if (code.join('') === DEMO_OTP_CODE) onSignedIn(sessionForPhone(`+254 ${phone}`))
     else setError(true)
   }
 
@@ -96,7 +101,7 @@ export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) 
             <div style={{ flex: 1 }} />
             <button onClick={sendCode} disabled={!phoneValid}
               style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: phoneValid ? 'var(--color-primary)' : 'var(--color-border)', color: phoneValid ? '#fff' : 'var(--color-muted-light)', fontSize: 16, fontWeight: 700, cursor: phoneValid ? 'pointer' : 'not-allowed', marginTop: 24 }}>
-              Send code
+              {OTP_MODE === 'skip' ? 'Continue' : 'Send code'}
             </button>
           </>
         ) : (
@@ -119,7 +124,7 @@ export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) 
             {error ? (
               <div style={{ fontSize: 13, color: 'var(--color-noshow)', marginTop: 10, fontWeight: 500 }}>That code is incorrect. Check the SMS and try again.</div>
             ) : (
-              <div style={{ fontSize: 12, color: 'var(--color-muted-light)', marginTop: 10 }}>Demo code: {DEMO_CODE}</div>
+              <div style={{ fontSize: 12, color: 'var(--color-muted-light)', marginTop: 10 }}>Demo code: {DEMO_OTP_CODE}</div>
             )}
 
             <div className="flex items-center justify-between" style={{ marginTop: 20 }}>

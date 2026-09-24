@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
@@ -69,5 +69,21 @@ describe('routing', () => {
   it('shows not found for unknown pages', async () => {
     renderAt('/nowhere', OWNER)
     expect(await screen.findByText('Page not found')).toBeInTheDocument()
+  })
+})
+
+describe('sign-in bypass (VITE_OTP_MODE=skip)', () => {
+  it('signs in straight from the phone number, without a code', async () => {
+    vi.stubEnv('VITE_OTP_MODE', 'skip')
+    vi.resetModules()
+    const { routes: skipRoutes } = await import('./routes')
+    const { AppStateProvider: Provider } = await import('./AppState')
+    const user = userEvent.setup()
+    const router = createMemoryRouter(skipRoutes, { initialEntries: ['/login'] })
+    render(<Provider><RouterProvider router={router} /></Provider>)
+    await user.type(screen.getByPlaceholderText('712 345 678'), '733000222')
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/v/greenfield/today'))
+    vi.unstubAllEnvs()
   })
 })
