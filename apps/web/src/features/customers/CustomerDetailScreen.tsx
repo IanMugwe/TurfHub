@@ -20,9 +20,9 @@ export default function CustomerDetailScreen({ customer: c, flagged, onToggleFla
   const initials = c.name.split(' ').map(w => w[0]).slice(0, 2).join('')
 
   return (
-    <div style={{ paddingBottom: 90 }}>
+    <div style={{ paddingBottom: desktop ? 0 : 90 }}>
       {/* Header */}
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 16px' : '52px 16px 16px' }}>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 16px' : '52px 16px 16px', ...(desktop && { background: 'transparent', borderBottom: 'none' }) }}>
         <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', padding: '6px 0', marginBottom: 8 }}>‹ Customers</button>
         <div className="flex items-center gap-3">
           <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, flexShrink: 0 }}>{initials}</div>
@@ -93,7 +93,7 @@ export default function CustomerDetailScreen({ customer: c, flagged, onToggleFla
       </div>
 
       {/* Sticky CTA */}
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', padding: desktop ? '12px 32px' : '12px 16px 20px', zIndex: 100, ...(desktop && { display: 'flex', justifyContent: 'flex-end' }) }}>
+      <div style={{ position: desktop ? 'static' : 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', padding: desktop ? '8px 32px 0' : '12px 16px 20px', zIndex: 100, ...(desktop && { display: 'flex', justifyContent: 'flex-end', background: 'transparent', borderTop: 'none' }) }}>
         <button onClick={onNewBooking}
           style={{ width: desktop ? 'auto' : '100%', padding: desktop ? '13px 28px' : '15px', borderRadius: 14, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
           + New booking for this customer

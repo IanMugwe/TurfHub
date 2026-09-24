@@ -40,7 +40,7 @@ export default function BookingRequestsScreen({ decisions, onDecide, onBack, onB
 
   return (
     <div>
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 14px' : '52px 16px 14px' }}>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 14px' : '52px 16px 14px', ...(desktop && { background: 'transparent', borderBottom: 'none' }) }}>
         <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', padding: '6px 0', marginBottom: 4 }}>‹ Today</button>
         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)' }}>
           Booking requests {open.length > 0 && <span style={{ color: 'var(--color-muted)', fontWeight: 500 }}>({open.length})</span>}

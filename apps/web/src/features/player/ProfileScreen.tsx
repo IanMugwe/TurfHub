@@ -12,7 +12,7 @@ export default function ProfileScreen({ name, phone, onSignOut }: { name: string
 
   return (
     <div>
-      <div style={{ background: 'var(--color-primary)', padding: desktop ? '28px 32px 28px' : '52px 16px 28px', textAlign: 'center' }}>
+      <div style={{ background: 'var(--color-primary)', padding: desktop ? '28px 32px 28px' : '52px 16px 28px', textAlign: 'center', ...(desktop && { margin: '24px 32px 0', borderRadius: 20 }) }}>
         <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--color-accent)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: 'var(--color-primary-dark)', marginBottom: 10 }}>
           {initials(name)}
         </div>

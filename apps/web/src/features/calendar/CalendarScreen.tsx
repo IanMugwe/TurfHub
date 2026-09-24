@@ -58,7 +58,10 @@ export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBo
   const totalGridH = HOURS.length * ROW_H
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <div style={desktop
+      // Desktop: the calendar is a card that fits between the top navigation and the footer
+      ? { display: 'flex', flexDirection: 'column', height: 'calc(100vh - 112px)', minHeight: 560, overflow: 'hidden', margin: '24px 32px 0', border: '1px solid var(--color-border)', borderRadius: 16, background: 'var(--color-surface)' }
+      : { display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       {/* ── Header (fixed) ── */}
       <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', flexShrink: 0, paddingTop: desktop ? 12 : 46 }}>
         {/* Date strip */}

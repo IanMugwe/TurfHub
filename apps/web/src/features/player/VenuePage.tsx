@@ -61,7 +61,7 @@ export default function VenuePage({ onBack, onBook }: { onBack: () => void; onBo
   return (
     <div>
       {/* Photo gallery */}
-      <div style={{ position: 'relative', height: desktop ? 360 : 240, background: 'var(--color-confirmed-bg)', flexShrink: 0 }}>
+      <div style={{ ...(desktop && { margin: '24px 16px 0', borderRadius: 20, overflow: 'hidden' }), position: 'relative', height: desktop ? 360 : 240, background: 'var(--color-confirmed-bg)', flexShrink: 0 }}>
         <img src={IMAGES[imgIdx]} alt="Venue" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         {/* Back button */}
         <button onClick={onBack} style={{ position: 'absolute', top: 48, left: 16, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 18, backdropFilter: 'blur(4px)' }}>‹</button>

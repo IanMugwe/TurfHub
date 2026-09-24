@@ -1,5 +1,7 @@
 // Route-level components: read the URL and app state, then render a feature screen
+import type { ReactNode } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router'
+import SiteShell from './SiteShell'
 import { useStaff } from './StaffLayout'
 import { useAppState } from './AppState'
 import NotFound from './NotFound'
@@ -40,14 +42,8 @@ export function Login() {
   if (session) return <Navigate to={homeFor(session)} replace />
   const screen = <SignInScreen onSignedIn={s => { signIn(s); navigate(homeFor(s), { replace: true }) }} />
   if (!desktop) return screen
-  // Desktop: the sign-in screen as a centred card
-  return (
-    <div style={{ flex: 1, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-surface-2)', padding: 24 }}>
-      <div style={{ width: 420, height: 'min(760px, calc(100vh - 48px))', display: 'flex', flexDirection: 'column', borderRadius: 24, overflow: 'hidden', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', background: 'var(--color-surface)' }}>
-        {screen}
-      </div>
-    </div>
-  )
+  // Desktop: the sign-in screen as a centred card on the website
+  return <DesktopSignIn>{screen}</DesktopSignIn>
 }
 
 function useSignOut() {
@@ -162,4 +158,17 @@ export function Profile() {
   const signOut = useSignOut()
   if (!session) return null
   return <ProfileScreen name={session.name} phone={session.phone} onSignOut={signOut} />
+}
+
+function DesktopSignIn({ children }: { children: ReactNode }) {
+  const { theme, toggleTheme } = useAppState()
+  return (
+    <SiteShell nav={{ theme, onToggleTheme: toggleTheme }}>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 24px 0' }}>
+        <div style={{ width: 420, height: 'min(720px, calc(100vh - 160px))', display: 'flex', flexDirection: 'column', borderRadius: 24, overflow: 'hidden', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.12)', border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+          {children}
+        </div>
+      </div>
+    </SiteShell>
+  )
 }

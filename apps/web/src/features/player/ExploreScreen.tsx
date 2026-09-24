@@ -60,7 +60,7 @@ export default function ExploreScreen({ onVenueTap }: { onVenueTap: (id: string)
   return (
     <div>
       {/* Header */}
-      <div style={{ background: 'var(--color-primary)', padding: desktop ? '28px 32px 16px' : '52px 16px 16px' }}>
+      <div style={{ background: 'var(--color-primary)', padding: desktop ? '28px 32px 16px' : '52px 16px 16px', ...(desktop && { margin: '24px 32px 0', borderRadius: 20 }) }}>
         <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 12 }}>Find a pitch</div>
         <div style={{ position: 'relative' }}>
           <input value={query} onChange={e => setQuery(e.target.value)}
@@ -71,7 +71,7 @@ export default function ExploreScreen({ onVenueTap }: { onVenueTap: (id: string)
       </div>
 
       {/* Filter chips */}
-      <div style={{ display: 'flex', gap: 8, padding: '12px 16px', overflowX: 'auto', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)' }}>
+      <div style={{ display: 'flex', gap: 8, padding: '12px 16px', overflowX: 'auto', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', ...(desktop && { padding: '20px 32px 0', background: 'transparent', borderBottom: 'none' }) }}>
         <button style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-muted)', fontSize: 13, cursor: 'pointer' }}>
           📅 Date
         </button>
@@ -90,7 +90,7 @@ export default function ExploreScreen({ onVenueTap }: { onVenueTap: (id: string)
       </div>
 
       {/* Near me + List/Map */}
-      <div className="flex items-center justify-between" style={{ padding: '10px 16px', background: 'var(--color-bg)' }}>
+      <div className="flex items-center justify-between" style={{ padding: desktop ? '12px 32px 0' : '10px 16px', background: 'var(--color-bg)' }}>
         <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 20, border: '1px solid var(--color-primary)', background: 'var(--color-primary-light)', color: 'var(--color-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           📍 Near me
         </button>

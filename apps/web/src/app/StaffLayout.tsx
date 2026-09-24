@@ -5,7 +5,7 @@ import NewBookingSheet from '../features/bookings/NewBookingSheet'
 import BookingDetailSheet from '../features/bookings/BookingDetailSheet'
 import type { RequestDecision } from '../features/requests/BookingRequestsScreen'
 import TabBar, { type TabItem } from '../ui/TabBar'
-import Sidebar from '../ui/Sidebar'
+import SiteShell from './SiteShell'
 import { useIsDesktop } from '../lib/useIsDesktop'
 import { CalIcon, ChartIcon, HomeIcon, MoreIcon, PeopleIcon } from '../ui/icons'
 import { VENUE, customerByPhoneParam, findBooking, initials } from '../mocks/data'
@@ -111,30 +111,24 @@ export default function StaffLayout() {
   if (desktop) {
     return (
       <StaffContext.Provider value={state}>
-        <div style={{ display: 'flex', minHeight: '100vh' }}>
-          <Sidebar
-            subtitle={`${VENUE.name} · ${VENUE.area.split(',')[0]}`}
-            items={tabs}
-            // Requests belongs under Today
-            active={activeTab ?? (section === 'requests' ? 'today' : null)}
-            onSelect={id => navigate(`/v/${venueId}/${id}`)}
-            action={
-              <button onClick={() => openNewBooking()}
-                style={{ width: '100%', padding: '12px', minHeight: 44, borderRadius: 12, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
-                + New booking
-              </button>
-            }
-            user={{ initials: initials(session.name), name: session.name, role: session.staffRole === 'owner' ? 'Owner' : 'Manager' }}
-            theme={theme}
-            onToggleTheme={toggleTheme}
-            onSignOut={() => { signOut(); navigate('/login', { replace: true }) }}
-          />
-          <main style={{ flex: 1, minWidth: 0, height: '100vh', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              <Outlet />
-            </div>
-          </main>
-        </div>
+        <SiteShell nav={{
+          items: tabs,
+          // Requests belongs under Today
+          active: activeTab ?? (section === 'requests' ? 'today' : null),
+          onSelect: id => navigate(`/v/${venueId}/${id}`),
+          action: (
+            <button onClick={() => openNewBooking()}
+              style={{ padding: '9px 16px', borderRadius: 10, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              + New booking
+            </button>
+          ),
+          user: { initials: initials(session.name), name: session.name, role: `${session.staffRole === 'owner' ? 'Owner' : 'Manager'} · ${VENUE.name}` },
+          theme,
+          onToggleTheme: toggleTheme,
+          onSignOut: () => { signOut(); navigate('/login', { replace: true }) },
+        }}>
+          <Outlet />
+        </SiteShell>
         {sheets}
       </StaffContext.Provider>
     )

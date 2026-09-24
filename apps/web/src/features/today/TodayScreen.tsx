@@ -37,7 +37,7 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
   return (
     <div>
       {/* Header */}
-      <div style={{ background: 'var(--color-primary)', padding: desktop ? '28px 32px 24px' : '52px 20px 20px' }}>
+      <div style={{ background: 'var(--color-primary)', padding: desktop ? '28px 32px 24px' : '52px 20px 20px', ...(desktop && { margin: '24px 32px 0', borderRadius: 20 }) }}>
         <div className="flex items-center justify-between mb-1">
           <div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 500, marginBottom: 2 }}>Tue 22 Sep 2026</div>
@@ -47,7 +47,8 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
             </div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>{VENUE.area}</div>
           </div>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--color-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, color: 'var(--color-primary-dark)', flexShrink: 0 }}>{userInitials}</div>
+          {/* On desktop the account avatar lives in the top navigation */}
+          {!desktop && <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--color-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, color: 'var(--color-primary-dark)', flexShrink: 0 }}>{userInitials}</div>}
         </div>
       </div>
 

@@ -58,7 +58,7 @@ export default function MoreScreen({ user, theme, onToggleTheme, onSignOut }: { 
   const desktop = useIsDesktop()
   return (
     <div>
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 16px' : '52px 16px 16px' }}>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 16px' : '52px 16px 16px', ...(desktop && { background: 'transparent', borderBottom: 'none' }) }}>
         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)' }}>More</div>
       </div>
 

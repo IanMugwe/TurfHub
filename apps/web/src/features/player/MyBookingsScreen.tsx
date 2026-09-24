@@ -27,7 +27,7 @@ export default function MyBookingsScreen({ onBack }: { onBack: () => void }) {
 
   return (
     <div>
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 0' : '52px 16px 0' }}>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 0' : '52px 16px 0', ...(desktop && { background: 'transparent', borderBottom: 'none' }) }}>
         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)', marginBottom: 14 }}>My Bookings</div>
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--color-border)' }}>
           {(['upcoming', 'past', 'cancelled'] as const).map(t => (
