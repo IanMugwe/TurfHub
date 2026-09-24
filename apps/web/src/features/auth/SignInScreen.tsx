@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { sessionForPhone } from '../data'
-import type { Session } from '../types'
+import { sessionForPhone } from '../../mocks/data'
+import type { Session } from '../../types'
 
 const DEMO_CODE = '123456'
 

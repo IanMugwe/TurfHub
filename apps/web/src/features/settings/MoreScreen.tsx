@@ -1,9 +1,20 @@
-import type { StaffRole } from '../types'
-import { STAFF_ACCOUNTS, VENUE } from '../data'
+import type { StaffRole } from '../../types'
+import Toggle from '../../ui/Toggle'
+import { STAFF_ACCOUNTS, VENUE } from '../../mocks/data'
+
+interface SettingsItem {
+  icon: string
+  label: string
+  sub: string
+  toggle?: boolean
+  on?: boolean
+  danger?: boolean
+  action?: 'theme' | 'signout'
+}
 
 function sectionsFor(user: { name: string; staffRole: StaffRole }) {
   const isOwner = user.staffRole === 'owner'
-  return [
+  const sections: { title: string; items: SettingsItem[] }[] = [
     {
       title: 'Venue',
       items: [
@@ -36,7 +47,8 @@ function sectionsFor(user: { name: string; staffRole: StaffRole }) {
         { icon: '🚪', label: 'Sign out', sub: '', danger: true, action: 'signout' },
       ],
     },
-  ].filter(section => isOwner || section.title !== 'Team')
+  ]
+  return sections.filter(section => isOwner || section.title !== 'Team')
 }
 
 const ROLE_LABEL: Record<StaffRole, string> = { owner: 'Owner', manager: 'Manager' }
@@ -60,21 +72,19 @@ export default function MoreScreen({ user, theme, onToggleTheme, onSignOut }: { 
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, paddingLeft: 4 }}>{section.title}</div>
             <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 14, overflow: 'hidden' }}>
               {section.items.map((item, i) => {
-                const action = (item as any).action
-                const on = action === 'theme' ? theme === 'dark' : (item as any).on
+                const action = item.action
+                const on = action === 'theme' ? theme === 'dark' : !!item.on
                 return (
                 <button key={item.label} onClick={action === 'theme' ? onToggleTheme : action === 'signout' ? onSignOut : undefined}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderBottom: i < section.items.length - 1 ? '1px solid var(--color-border)' : 'none', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
                   <span style={{ fontSize: 20 }}>{item.icon}</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 500, color: (item as any).danger ? 'var(--color-noshow)' : 'var(--color-text)' }}>{item.label}</div>
+                    <div style={{ fontSize: 15, fontWeight: 500, color: item.danger ? 'var(--color-noshow)' : 'var(--color-text)' }}>{item.label}</div>
                     {item.sub && <div style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 1 }}>{item.sub}</div>}
                   </div>
-                  {(item as any).toggle !== undefined ? (
-                    <div style={{ width: 44, height: 26, borderRadius: 13, background: on ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: on ? 20 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-                    </div>
-                  ) : !(item as any).danger && (
+                  {item.toggle ? (
+                    <Toggle on={on} label={item.label} />
+                  ) : !item.danger && (
                     <span style={{ color: 'var(--color-muted-light)', fontSize: 18 }}>›</span>
                   )}
                 </button>

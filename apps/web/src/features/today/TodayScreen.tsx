@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { TODAY_BOOKINGS, PENDING_REQUESTS, PAST_UNPAID, VENUE } from '../data'
-import { StatusPill, PayPill } from '../components/Pill'
-import StatCard from '../components/StatCard'
-import Skeleton from '../components/Skeleton'
-import { NoShowBadge, Countdown, type RequestDecision } from './BookingRequestsScreen'
-import type { Booking } from '../types'
+import { TODAY_BOOKINGS, PENDING_REQUESTS, PAST_UNPAID, VENUE } from '../../mocks/data'
+import { StatusPill, PayPill } from '../../ui/Pill'
+import StatCard from '../../ui/StatCard'
+import Skeleton from '../../ui/Skeleton'
+import { NoShowBadge, Countdown, type RequestDecision } from '../requests/BookingRequestsScreen'
+import type { Booking } from '../../types'
 
 const SOURCE_ICON: Record<string, string> = { walkin: '🚶', phone: '📞', whatsapp: '💬', app: '📱' }
 

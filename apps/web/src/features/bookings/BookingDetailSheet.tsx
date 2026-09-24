@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import type { Booking } from '../types'
-import { StatusPill, PayPill } from './Pill'
-import { NOW_HOUR, startHour } from '../data'
+import type { Booking } from '../../types'
+import { StatusPill, PayPill } from '../../ui/Pill'
+import BottomSheet from '../../ui/BottomSheet'
+import { NOW_HOUR, startHour } from '../../mocks/data'
 
 const SOURCE_LABEL: Record<string, string> = { walkin: '🚶 Walk-in', phone: '📞 Phone', whatsapp: '💬 WhatsApp', app: '📱 App' }
 
@@ -16,13 +17,7 @@ export default function BookingDetailSheet({ booking: b, onClose }: { booking: B
   const hasStarted = startHour(b) <= NOW_HOUR || b.date !== 'Tue 22 Sep'
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
-      <div style={{ position: 'relative', width: '100%', background: 'var(--color-surface)', borderRadius: '20px 20px 0 0', maxHeight: '92vh', overflowY: 'auto', paddingBottom: 40 }}>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-border)' }} />
-        </div>
-
+    <BottomSheet onClose={onClose} maxHeight="92vh" label={`Booking ${b.ref}`}>
         <div style={{ padding: '12px 20px 0' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -152,7 +147,6 @@ export default function BookingDetailSheet({ booking: b, onClose }: { booking: B
             <div style={{ fontSize: 12, color: 'var(--color-muted)', textAlign: 'right', marginTop: 6 }}>No-show available after {b.time.split('–')[0]}</div>
           )}
         </div>
-      </div>
-    </div>
+    </BottomSheet>
   )
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import EmptyState from '../components/EmptyState'
+import EmptyState from '../../ui/EmptyState'
 
 const UPCOMING = [
   { ref: 'TRF-4K7Q', venue: 'Greenfield Arena', area: 'Kilimani', pitch: 'Pitch A · 5-a-side', date: 'Tue 22 Sep', time: '14:00–15:00', price: 2500, status: 'confirmed' as const, canCancel: true },

@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { TODAY_BOOKINGS, VENUE } from '../data'
+import BottomSheet from '../../ui/BottomSheet'
+import Toggle from '../../ui/Toggle'
+import { TODAY_BOOKINGS, VENUE } from '../../mocks/data'
 
 const SOURCES = [
   { id: 'walkin', label: '🚶 Walk-in' },
@@ -13,9 +15,14 @@ function toMinutes(t: string) {
   return h * 60 + m
 }
 
-export default function NewBookingSheet({ onClose, initialCustomer }: { onClose: () => void; initialCustomer?: { name: string; phone: string } }) {
-  const [pitch, setPitch] = useState(VENUE.pitches[0].id)
-  const [time, setTime] = useState('14:00')
+export default function NewBookingSheet({ onClose, initialCustomer, initialPitch, initialTime }: {
+  onClose: () => void
+  initialCustomer?: { name: string; phone: string }
+  initialPitch?: string
+  initialTime?: string
+}) {
+  const [pitch, setPitch] = useState(VENUE.pitches.some(p => p.id === initialPitch) ? initialPitch! : VENUE.pitches[0].id)
+  const [time, setTime] = useState(initialTime ?? '14:00')
   const [duration, setDuration] = useState('1h')
   const [customer, setCustomer] = useState(initialCustomer?.name ?? '')
   const [phone, setPhone] = useState(initialCustomer?.phone ?? '+254 ')
@@ -40,14 +47,7 @@ export default function NewBookingSheet({ onClose, initialCustomer }: { onClose:
   })
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
-      <div style={{ position: 'relative', width: '100%', background: 'var(--color-surface)', borderRadius: '20px 20px 0 0', maxHeight: '90vh', overflowY: 'auto', padding: '0 0 40px' }}>
-        {/* Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-border)' }} />
-        </div>
-
+    <BottomSheet onClose={onClose} label="New booking">
         <div style={{ padding: '16px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>New booking</div>
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'var(--color-bg)', cursor: 'pointer', fontSize: 18, color: 'var(--color-muted)' }}>×</button>
@@ -109,10 +109,7 @@ export default function NewBookingSheet({ onClose, initialCustomer }: { onClose:
           {/* Repeat */}
           <div className="flex items-center justify-between mb-2">
             <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text)' }}>Repeat weekly</div>
-            <button onClick={() => setRepeat(!repeat)}
-              style={{ width: 44, height: 26, borderRadius: 13, background: repeat ? 'var(--color-primary)' : 'var(--color-border)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: repeat ? 20 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-            </button>
+            <Toggle on={repeat} onChange={setRepeat} label="Repeat weekly" />
           </div>
           {repeat && (
             <div style={{ background: 'var(--color-bg)', borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
@@ -151,7 +148,6 @@ export default function NewBookingSheet({ onClose, initialCustomer }: { onClose:
             Save booking
           </button>
         </div>
-      </div>
-    </div>
+    </BottomSheet>
   )
 }

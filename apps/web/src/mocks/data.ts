@@ -1,6 +1,9 @@
-import type { Booking, Customer, Session, StaffRole } from './types'
+import type { Booking, Customer, Session, StaffRole } from '../types'
+import { phoneToParam } from '../lib/format'
 
 export const VENUE = {
+  id: 'greenfield',
+  slug: 'greenfield-arena',
   name: 'Greenfield Arena',
   area: 'Kilimani, Nairobi',
   pitches: [
@@ -25,8 +28,8 @@ export const TODAY_BOOKINGS: Booking[] = [
 export const PENDING_REQUESTS = TODAY_BOOKINGS.filter(b => b.status === 'pending')
 export const PAST_UNPAID = TODAY_BOOKINGS.filter(b => b.status === 'completed' && b.payment === 'unpaid')
 
-// Fixed "now" for the prototype: Tue 22 Sep, 15:00
-export const NOW_HOUR = 15
+// Fixed "now" for mock data: Tue 22 Sep, 14:00. Replaced by server time when the API lands.
+export const NOW_HOUR = 14
 
 export const CUSTOMERS: Customer[] = [
   { name: 'Brian Otieno', phone: '+254 712 345 678', visits: 24, lastVisit: 'Mon 21 Sep', totalPaid: 62500, unpaid: 0, noShows: 0, notes: 'Plays with the Kilimani office league on Tuesdays.' },
@@ -78,4 +81,13 @@ export function sessionForPhone(phone: string): Session {
 
 export function initials(name: string) {
   return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+}
+
+export function findBooking(ref: string) {
+  return [...TODAY_BOOKINGS, ...PAST_BOOKINGS].find(b => b.ref === ref)
+}
+
+/** Look up a customer from the phone segment used in URLs */
+export function customerByPhoneParam(param: string) {
+  return CUSTOMERS.find(c => phoneToParam(c.phone) === param)
 }

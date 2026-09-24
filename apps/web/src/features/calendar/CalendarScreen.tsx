@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
-import { TODAY_BOOKINGS, VENUE } from '../data'
-import type { Booking } from '../types'
+import { TODAY_BOOKINGS, VENUE, NOW_HOUR } from '../../mocks/data'
+import type { Booking } from '../../types'
 
 const STATUS_BG: Record<string, string> = {
   confirmed: 'var(--color-confirmed-bg)',
@@ -45,10 +45,9 @@ function bookingHeight(b: Booking): number {
   return (end - start) * ROW_H
 }
 
-const NOW_HOUR = 14 // 14:00 current time
 const NOW_TOP = (NOW_HOUR - 6) * ROW_H
 
-export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBooking: () => void; onBookingTap: (b: Booking) => void }) {
+export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBooking: (pitchId?: string, hour?: number) => void; onBookingTap: (b: Booking) => void }) {
   const [selectedDay, setSelectedDay] = useState(1)
   const [view, setView] = useState<'day' | 'week'>('day')
   const [selectedPitch, setSelectedPitch] = useState('A') // for week view
@@ -148,7 +147,7 @@ export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBo
                 <div key={p.id} style={{ borderRight: '1px solid var(--color-border)', position: 'relative' }}>
                   {/* Hour rows (background grid) */}
                   {HOURS.map(h => (
-                    <div key={h} onClick={() => onNewBooking()}
+                    <div key={h} onClick={() => onNewBooking(p.id, h)}
                       style={{ height: ROW_H, borderBottom: '1px solid var(--color-border)', background: h >= PEAK_START && h < PEAK_END ? 'var(--color-peak)' : 'var(--color-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-border)', fontSize: 16 }}>
                       +
                     </div>
@@ -217,7 +216,7 @@ export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBo
               return (
                 <div key={d} style={{ borderRight: '1px solid var(--color-border)', position: 'relative', background: di === selectedDay ? 'rgba(15,122,61,0.02)' : 'transparent' }}>
                   {HOURS.map(h => (
-                    <div key={h} onClick={() => onNewBooking()}
+                    <div key={h} onClick={() => onNewBooking(selectedPitch, h)}
                       style={{ height: ROW_H, borderBottom: '1px solid var(--color-border)', background: h >= PEAK_START && h < PEAK_END ? 'var(--color-peak)' : 'transparent', cursor: 'pointer' }} />
                   ))}
                   {pitchBookings.map(b => (

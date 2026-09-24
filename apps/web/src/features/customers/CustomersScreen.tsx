@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { CUSTOMERS } from '../data'
-import EmptyState from '../components/EmptyState'
-import type { Customer } from '../types'
+import { CUSTOMERS } from '../../mocks/data'
+import EmptyState from '../../ui/EmptyState'
+import type { Customer } from '../../types'
 
 export default function CustomersScreen({ flagged, onCustomerTap, onNewBooking }: { flagged: string[]; onCustomerTap: (c: Customer) => void; onNewBooking: () => void }) {
   const [query, setQuery] = useState('')

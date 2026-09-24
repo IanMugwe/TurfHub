@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { bookingsFor } from '../data'
-import StatCard from '../components/StatCard'
-import EmptyState from '../components/EmptyState'
-import { StatusPill, PayPill } from '../components/Pill'
-import type { Booking, Customer } from '../types'
+import { bookingsFor } from '../../mocks/data'
+import StatCard from '../../ui/StatCard'
+import EmptyState from '../../ui/EmptyState'
+import { StatusPill, PayPill } from '../../ui/Pill'
+import type { Booking, Customer } from '../../types'
 
 export default function CustomerDetailScreen({ customer: c, flagged, onToggleFlag, onBack, onBookingTap, onNewBooking }: {
   customer: Customer

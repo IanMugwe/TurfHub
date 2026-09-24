@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { PENDING_REQUESTS, customerByName } from '../data'
-import EmptyState from '../components/EmptyState'
-import type { Booking } from '../types'
+import { PENDING_REQUESTS, customerByName } from '../../mocks/data'
+import EmptyState from '../../ui/EmptyState'
+import type { Booking } from '../../types'
 
 export type RequestDecision = 'accepted' | 'rejected'
 

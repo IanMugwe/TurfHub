@@ -1,13 +1,13 @@
 import type { SlotSelection } from './types'
 
-export default function ConfirmationScreen({ slot, status, onDone, onMyBookings }: {
+export default function ConfirmationScreen({ bookingRef: ref, slot, status, onDone, onMyBookings }: {
+  bookingRef: string
   slot: SlotSelection
   status: 'confirmed' | 'pending'
   onDone: () => void
   onMyBookings: () => void
 }) {
   const isConfirmed = status === 'confirmed'
-  const ref = 'TRF-' + Math.random().toString(36).toUpperCase().slice(2, 6)
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', background: 'var(--color-bg)', textAlign: 'center' }}>

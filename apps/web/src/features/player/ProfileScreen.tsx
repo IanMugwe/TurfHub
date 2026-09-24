@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { customerByName, initials } from '../data'
+import Toggle from '../../ui/Toggle'
+import { customerByName, initials } from '../../mocks/data'
 
 export default function ProfileScreen({ name, phone, onSignOut }: { name: string; phone: string; onSignOut: () => void }) {
   const stats = customerByName(name)
@@ -59,10 +60,7 @@ export default function ProfileScreen({ name, phone, onSignOut }: { name: string
                   <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text)' }}>{item.label}</div>
                   <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>{item.sub}</div>
                 </div>
-                <button onClick={() => item.set(!item.val)}
-                  style={{ width: 44, height: 26, borderRadius: 13, background: item.val ? 'var(--color-primary)' : 'var(--color-border)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: item.val ? 20 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-                </button>
+                <Toggle on={item.val} onChange={item.set} label={item.label} />
               </div>
             ))}
           </div>

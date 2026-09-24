@@ -40,18 +40,18 @@ Every screen below runs in the browser from `src/data.ts` sample data. None of i
 | Staff: Reports | Date range chips, revenue by day split by method, outstanding list, occupancy heatmap, top 5 customers, Export CSV button | Bookings by source (donut), no-show rate, pitch filter |
 | Staff: More | Settings list, pending-approval banner, dark mode toggle, sign out. Managers don't see pricing rules or the team section, and Reports is hidden from them. | Every sub-page (venue details, pitches, hours, pricing, blocks, team) |
 | Player | Explore (search, filters, list), venue page (gallery, pitch tabs, day strip, slot grid), review, confirmation (confirmed or pending), my bookings (upcoming, past, cancelled), profile, sign out | Map view (the toggle does nothing), favourites, first-booking name capture |
-| Cross-cutting | Design tokens with light and dark themes, empty/loading/error states, 390 px phone frame | URL routing, real data, tests, lint, accessibility pass |
+| Cross-cutting | Design tokens with light and dark themes, empty/loading/error states, 390 px phone frame, URL routing, lint, tests, CI (F0) | Real data, accessibility pass |
 
 ### 1.3 Technical debt in `apps/web`
 
-These came from the prototype and are fixed in F0 (§4):
+These came from the prototype. F0 fixed most of them:
 
-- **Navigation is component state.** There are no URLs, so the back button, deep links and refresh don't work.
-- **Styling is mostly inline `style={{}}`.** The colour tokens exist in `src/index.css`, but components don't use Tailwind classes.
-- **Duplicated UI.** Headers, sheets, toggles and chips are copied between screens instead of shared.
-- **Loose typing.** There are several `as any` casts (`CustomerApp.tsx`, `MoreScreen.tsx`, `App.tsx` tab icons).
-- **Fake "now" and phone frame.** The fixed "now" (`NOW_HOUR = 15`) and the 390 px frame in `App.tsx` exist only for the prototype.
-- **Figma Make leftovers.** The Figma Make plugins in `vite.config.ts` and `.figma/` are needed only while design still happens in Figma Make.
+- ~~**Navigation is component state.**~~ Fixed: every screen has a URL (§3.3).
+- ~~**Loose typing.**~~ Fixed: no `as any` casts remain.
+- **Duplicated UI.** Partly fixed: the tab bar, bottom sheet, toggle and icons are shared. Headers, chips and steppers are extracted as their screens get wired to the API.
+- **Styling is mostly inline `style={{}}`.** Left as is on purpose. The design is final, so styles only change if the result is pixel-identical.
+- **Fake "now".** `NOW_HOUR` now lives in one place (`src/mocks/data.ts`) and goes away when the API provides server time (P7).
+- **Figma Make leftovers.** The Figma Make plugins in `vite.config.ts` and `.figma/` stay while the design may still be edited in Figma Make.
 
 ---
 
@@ -62,6 +62,7 @@ The implementation plan's D1–D11 still stand, except that **the web stack chan
 | # | Decision | Proposed default |
 |---|----------|------------------|
 | W1 | **Web stack** | Keep `apps/web` on Vite + React as a single-page app. Use **React Router** for URLs and **TanStack Query** for server data. Host it as static files (Vercel, Netlify or Cloudflare Pages). |
+| W3 | **Visual design** | **Final.** The app keeps the current look, including the 390 px phone frame on every screen. Code changes must not change how screens look; F0 was checked with before/after screenshots of 24 screens. |
 | W2 | **Search engines and link previews for public venue pages** (the SRS wants venues discoverable) | Ship the SPA first. In M7, add server rendering only for `/venues/:slug`, either with Vike (Vite's SSR layer) or by having the API serve those pages' `<title>`/OpenGraph tags. Staff pages never need it. |
 | P1 | **One sign-in for everyone** (already built as a mock) | `POST /auth/otp/verify` returns the user and their venue memberships. People with a membership go to the staff app; everyone else goes to the player app. **This changes D2:** owners and managers use OTP only in the MVP, and password + 2FA applies to admins only. |
 | P2 | **People with both roles** | Default to the staff app. Add "Switch to player app" in More and "Switch to venue" in Profile. This needs a small design addition. |
@@ -69,7 +70,7 @@ The implementation plan's D1–D11 still stand, except that **the web stack chan
 | P4 | **Manager limits** (already hidden in the UI) | Also enforce them on the server with the venue-membership policy. Hiding a tab is not access control. |
 | P5 | **Multiple venues** | The venue goes in the URL (`/v/:venueId/…`). Remember the last-used venue on the device. |
 | P6 | **Dark mode** (already built) | Default to the system setting, with the manual override stored in `localStorage`. |
-| P7 | **"Now"** | Server time in `Africa/Nairobi` drives Up next, the now-line, no-show gating and countdowns. Remove `NOW_HOUR`. |
+| P7 | **"Now"** | Server time in `Africa/Nairobi` drives Up next, the now-line, no-show gating and countdowns. Until then, `NOW_HOUR` in `src/mocks/data.ts` stands in for it. |
 | P8 | **Request countdown** (already built) | Render it from `expires_at` on `PENDING` bookings, which the `expire-pending` job sets. |
 | P9 | **Live updates** | Poll every 30 s on Today, Calendar and Requests while visible, and refetch when the tab regains focus. Add server-sent events only if polling isn't enough. |
 
@@ -77,35 +78,37 @@ The implementation plan's D1–D11 still stand, except that **the web stack chan
 
 ## 3. Frontend architecture
 
-### 3.1 Folder structure (target for `apps/web/src`)
+### 3.1 Folder structure (`apps/web/src`)
 
 ```
 src/
-├── app/              router, providers (QueryClient, session, theme), layouts
+├── app/              router (routes.tsx, RouteScreens.tsx), layouts (PhoneFrame, StaffLayout, PlayerLayout), app state
 ├── features/
-│   ├── auth/         SignInScreen, useSession
-│   ├── today/  calendar/  bookings/  requests/  customers/  reports/  settings/
+│   ├── auth/  today/  calendar/  bookings/  requests/  customers/  reports/  settings/
 │   └── player/       explore, venue, booking flow, my bookings, profile
-├── ui/               shared components (§3.2) and tokens
-├── api/              typed client + TanStack Query hooks per resource
-└── lib/              format helpers (KES, +254 phones, dates, time ranges)
+├── ui/               shared components (§3.2)
+├── lib/              format helpers (KES, +254 phones)
+├── mocks/            sample data, replaced by the API milestone by milestone
+└── api/              typed client + TanStack Query hooks (from M0)
 ```
 
-Move the existing screens into `features/*` as they are. Only restyle them when a feature is being wired to the API, so nothing breaks in one big rewrite.
+Everything except `api/` exists since F0. Screens stay presentational: they get data and callbacks as props, and the route components in `app/RouteScreens.tsx` connect them to the URL and app state. Wiring a screen to the API means changing its route component, not its markup.
 
 ### 3.2 Shared UI (`src/ui`, later `packages/ui` if a second app needs it)
 
 | Component | Where it comes from |
 |-----------|------------------|
-| `StatusPill`, `PayPill` | `components/Pill.tsx` |
-| `StatCard`, `EmptyState`, `Skeleton` | `components/` (already shared) |
-| `BottomSheet` (overlay, handle, focus trap, Escape/swipe to close) | the pattern in `NewBookingSheet.tsx` and `BookingDetailSheet.tsx` |
-| `TabBar`, `BackHeader`, `Fab` | `App.tsx`, `CustomerApp.tsx`, detail screens |
-| `SegmentedControl`, `Chip`, `Toggle`, `Stepper` | calendar Day/Week, source chips, repeat toggle, weeks stepper |
-| `PhoneInput`, `OtpInput` | `SignInScreen.tsx` |
-| `Money`, `TimeRange`, `DateLabel` | formatting repeated across screens |
+| Component | Status |
+|-----------|--------|
+| `StatusPill`, `PayPill`, `StatCard`, `EmptyState`, `Skeleton` | **Done** |
+| `BottomSheet` (backdrop, handle, Escape to close) | **Done** in F0 |
+| `TabBar` and the tab icons | **Done** in F0 |
+| `Toggle` | **Done** in F0 |
+| `BackHeader`, `Fab`, `SegmentedControl`, `Chip`, `Stepper` | Extract when their screens are wired to the API |
+| `PhoneInput`, `OtpInput` | Extract from `SignInScreen.tsx` in M1 |
+| `Money`, `TimeRange`, `DateLabel` | The helpers exist in `src/lib/format.ts`; switch screens over as they're wired |
 
-Components move from inline styles to Tailwind classes that use the existing tokens (`bg-surface`, `text-muted`, `border-noshow-border`, …). The tokens in `src/index.css` stay the single source of truth for colours in both themes.
+The design is final (W3), so extracting a component must not change how it looks. The tokens in `src/index.css` stay the single source of truth for colours in both themes.
 
 ### 3.3 Routes
 
@@ -149,15 +152,16 @@ Route guards redirect signed-out users to `/login`. Venue routes require a membe
 |-----------|--------|
 | UI design and clickable prototype | **Done** |
 | Repo as pnpm workspace, web app in `apps/web` | **Done** |
-| F0 → M10 | To do |
+| F0: Frontend foundations | **Done** |
+| M0 → M10 | To do |
 
-### F0: Frontend foundations (≈1 week)
-- React Router with the routes in §3.3; replace the state-based navigation in `App.tsx` and `CustomerApp.tsx`.
-- Move screens into `features/*`, extract `src/ui` (§3.2), and remove the `as any` casts.
-- ESLint, Vitest with Testing Library, and a CI workflow (typecheck → lint → test → build).
-- Remove the phone frame on real devices (keep it only on wide desktop screens as a preview) and `NOW_HOUR`.
-- Decide whether design keeps happening in Figma Make. If not, drop the Figma plugins from `vite.config.ts` and delete `.figma/`, `AGENTS.md` and `CLAUDE.md` from `apps/web`.
-- **Exit:** every screen has a URL, back and refresh work, CI is green.
+### F0: Frontend foundations (done)
+- **Routing:** React Router with the routes in §3.3 (`src/app/routes.tsx`). Sign-in, role redirects, the owner-only Reports route and a not-found page all work by URL. Sheets open from the URL (`?booking=`, `?new=1&turf=&start=`), so back closes them. Tapping an empty calendar slot now fills in the pitch and time.
+- **Layout:** `src/app` (router, layouts, app state), `src/features/*` (screens), `src/ui` (shared components), `src/lib` (format helpers), `src/mocks` (sample data).
+- **State:** the session and theme are remembered on the device, so a refresh keeps you signed in. The API will replace this with session cookies in M1.
+- **Quality:** ESLint, Vitest + Testing Library (19 tests: format helpers, toggle, routing and role rules), and GitHub Actions CI (typecheck → lint → test → build).
+- **Design unchanged:** the phone frame and every screen look the same (W3). This was checked by screenshotting 24 screens before and after F0 in light and dark mode, with identical page markup and CSS.
+- **Kept on purpose:** inline styles, the Figma Make tooling, and `NOW_HOUR` until the API provides server time.
 
 ### M0: Backend foundations (≈1 week)
 - `apps/api` (NestJS), `packages/{database,validation,types}`, docker-compose (`postgis/postgis:16`, `redis:7`), Prisma, `/api/v1` health check.
@@ -210,7 +214,7 @@ Route guards redirect signed-out users to `/login`. Venue routes require a membe
 - Accessibility pass: contrast in both themes, focus handling in sheets, labels on pills and icons.
 - **Exit:** pilot venues use Turf as their only booking record for 2 weeks, then player booking is switched on.
 
-**Total:** about **18 weeks** for one developer (the prototype saved about two). The owner-only pilot can start after M6, around week 11.
+**Total remaining:** about **17 weeks** for one developer. The owner-only pilot can start after M6, around week 10.
 
 ```
 F0 → M0 → M1 → M2 → M3 → M4 → M5 → M6 ─┬→ M7 → M8 → M9 → M10

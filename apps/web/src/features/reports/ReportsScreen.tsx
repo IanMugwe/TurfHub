@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 const DAYS_DATA = [
   { day: 'Mon', cash: 8000, mpesa: 12000, other: 1000 },
@@ -15,7 +15,6 @@ type Range = 'week' | 'month' | 'custom'
 
 export default function ReportsScreen() {
   const [range, setRange] = useState<Range>('week')
-  const [pitch, setPitch] = useState('All')
 
   const total = DAYS_DATA.reduce((s, d) => s + d.cash + d.mpesa + d.other, 0)
 

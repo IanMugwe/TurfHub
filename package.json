@@ -8,6 +8,8 @@
   "scripts": {
     "dev": "pnpm --filter @turfhub/web dev",
     "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
   }
 }
