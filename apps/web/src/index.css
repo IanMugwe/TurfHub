@@ -94,6 +94,28 @@
   --color-skeleton: #222B27;
 }
 
+/* Phone frame: a 390 px device on wide screens, edge to edge on real phones */
+:root {
+  --frame-width: 390px;
+}
+
+.phone-frame {
+  width: var(--frame-width);
+  min-height: 100vh;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 500px) {
+  :root {
+    --frame-width: 100%;
+  }
+
+  .phone-frame {
+    min-height: 100dvh;
+    box-shadow: none;
+  }
+}
+
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }

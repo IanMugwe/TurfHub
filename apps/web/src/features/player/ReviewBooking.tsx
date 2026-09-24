@@ -79,7 +79,7 @@ export default function ReviewBooking({ slot, onBack, onConfirm }: {
       </div>
 
       {/* Sticky confirm button */}
-      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: 390, background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', padding: '12px 16px 28px', zIndex: 90 }}>
+      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: 'var(--frame-width)', background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', padding: '12px 16px 28px', zIndex: 90 }}>
         <button onClick={() => onConfirm('confirmed')} disabled={!name || phone.length < 10}
           style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: name && phone.length >= 10 ? 'var(--color-primary)' : 'var(--color-border)', color: name && phone.length >= 10 ? '#fff' : 'var(--color-muted-light)', fontSize: 16, fontWeight: 700, cursor: name && phone.length >= 10 ? 'pointer' : 'not-allowed', transition: 'background 0.15s' }}>
           Confirm booking

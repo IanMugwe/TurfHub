@@ -62,7 +62,7 @@ The implementation plan's D1–D11 still stand, except that **the web stack chan
 | # | Decision | Proposed default |
 |---|----------|------------------|
 | W1 | **Web stack** | Keep `apps/web` on Vite + React as a single-page app. Use **React Router** for URLs and **TanStack Query** for server data. Host it as static files (Vercel, Netlify or Cloudflare Pages). |
-| W3 | **Visual design** | **Final.** The app keeps the current look, including the 390 px phone frame on every screen. Code changes must not change how screens look; F0 was checked with before/after screenshots of 24 screens. |
+| W3 | **Visual design** | **Final.** The app keeps the current look. The phone frame adapts: on screens wider than 500 px it shows as a 390 px device on a grey background; on phones it fills the screen edge to edge (`.phone-frame` in `src/index.css`). Code changes must not change how screens look; F0 was checked with before/after screenshots of 24 screens. |
 | W2 | **Search engines and link previews for public venue pages** (the SRS wants venues discoverable) | Ship the SPA first. In M7, add server rendering only for `/venues/:slug`, either with Vike (Vite's SSR layer) or by having the API serve those pages' `<title>`/OpenGraph tags. Staff pages never need it. |
 | P1 | **One sign-in for everyone** (already built as a mock) | `POST /auth/otp/verify` returns the user and their venue memberships. People with a membership go to the staff app; everyone else goes to the player app. **This changes D2:** owners and managers use OTP only in the MVP, and password + 2FA applies to admins only. |
 | P2 | **People with both roles** | Default to the staff app. Add "Switch to player app" in More and "Switch to venue" in Profile. This needs a small design addition. |

@@ -156,7 +156,7 @@ export default function VenuePage({ onBack, onBook }: { onBack: () => void; onBo
 
       {/* Sticky booking bar */}
       {selectedSlot && (
-        <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: 390, background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', padding: '12px 16px 24px', zIndex: 90 }}>
+        <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: 'var(--frame-width)', background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', padding: '12px 16px 24px', zIndex: 90 }}>
           <div className="flex items-center justify-between mb-3">
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>{pitch.name} · {day} · {selectedSlot}</div>
