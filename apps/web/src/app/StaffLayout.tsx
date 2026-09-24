@@ -5,8 +5,10 @@ import NewBookingSheet from '../features/bookings/NewBookingSheet'
 import BookingDetailSheet from '../features/bookings/BookingDetailSheet'
 import type { RequestDecision } from '../features/requests/BookingRequestsScreen'
 import TabBar, { type TabItem } from '../ui/TabBar'
+import Sidebar from '../ui/Sidebar'
+import { useIsDesktop } from '../lib/useIsDesktop'
 import { CalIcon, ChartIcon, HomeIcon, MoreIcon, PeopleIcon } from '../ui/icons'
-import { VENUE, customerByPhoneParam, findBooking } from '../mocks/data'
+import { VENUE, customerByPhoneParam, findBooking, initials } from '../mocks/data'
 import { phoneToParam } from '../lib/format'
 import type { Booking, Session } from '../types'
 import NotFound from './NotFound'
@@ -49,7 +51,8 @@ const TABS: TabItem<StaffTab>[] = [
 ]
 
 export default function StaffLayout() {
-  const { session } = useAppState()
+  const { session, signOut, theme, toggleTheme } = useAppState()
+  const desktop = useIsDesktop()
   const { venueId = '' } = useParams()
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -90,6 +93,53 @@ export default function StaffLayout() {
 
   const state: StaffState = { session, venueId, decisions, decide, flagged, toggleFlag, openBooking, openNewBooking }
 
+  const sheets = (
+    <>
+      {params.get('new') && (
+        <NewBookingSheet
+          key={params.toString()}
+          initialCustomer={newFor}
+          initialPitch={params.get('turf') ?? undefined}
+          initialTime={params.get('start') ?? undefined}
+          onClose={closeSheet}
+        />
+      )}
+      {detailBooking && <BookingDetailSheet booking={detailBooking} onClose={closeSheet} />}
+    </>
+  )
+
+  if (desktop) {
+    return (
+      <StaffContext.Provider value={state}>
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
+          <Sidebar
+            subtitle={`${VENUE.name} · ${VENUE.area.split(',')[0]}`}
+            items={tabs}
+            // Requests belongs under Today
+            active={activeTab ?? (section === 'requests' ? 'today' : null)}
+            onSelect={id => navigate(`/v/${venueId}/${id}`)}
+            action={
+              <button onClick={() => openNewBooking()}
+                style={{ width: '100%', padding: '12px', minHeight: 44, borderRadius: 12, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+                + New booking
+              </button>
+            }
+            user={{ initials: initials(session.name), name: session.name, role: session.staffRole === 'owner' ? 'Owner' : 'Manager' }}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onSignOut={() => { signOut(); navigate('/login', { replace: true }) }}
+          />
+          <main style={{ flex: 1, minWidth: 0, height: '100vh', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              <Outlet />
+            </div>
+          </main>
+        </div>
+        {sheets}
+      </StaffContext.Provider>
+    )
+  }
+
   return (
     <StaffContext.Provider value={state}>
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
@@ -107,16 +157,7 @@ export default function StaffLayout() {
         </button>
       )}
 
-      {params.get('new') && (
-        <NewBookingSheet
-          key={params.toString()}
-          initialCustomer={newFor}
-          initialPitch={params.get('turf') ?? undefined}
-          initialTime={params.get('start') ?? undefined}
-          onClose={closeSheet}
-        />
-      )}
-      {detailBooking && <BookingDetailSheet booking={detailBooking} onClose={closeSheet} />}
+      {sheets}
     </StaffContext.Provider>
   )
 }

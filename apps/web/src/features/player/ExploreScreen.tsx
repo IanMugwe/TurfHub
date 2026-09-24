@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useIsDesktop } from '../../lib/useIsDesktop'
+import ResponsiveGrid from '../../ui/ResponsiveGrid'
 
 const VENUES = [
   {
@@ -45,6 +47,7 @@ const VENUES = [
 const FILTERS = ['All', '5-a-side', '7-a-side', '11-a-side']
 
 export default function ExploreScreen({ onVenueTap }: { onVenueTap: (id: string) => void }) {
+  const desktop = useIsDesktop()
   const [filter, setFilter] = useState('All')
   const [query, setQuery] = useState('')
 
@@ -57,7 +60,7 @@ export default function ExploreScreen({ onVenueTap }: { onVenueTap: (id: string)
   return (
     <div>
       {/* Header */}
-      <div style={{ background: 'var(--color-primary)', padding: '52px 16px 16px' }}>
+      <div style={{ background: 'var(--color-primary)', padding: desktop ? '28px 32px 16px' : '52px 16px 16px' }}>
         <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 12 }}>Find a pitch</div>
         <div style={{ position: 'relative' }}>
           <input value={query} onChange={e => setQuery(e.target.value)}
@@ -99,8 +102,9 @@ export default function ExploreScreen({ onVenueTap }: { onVenueTap: (id: string)
       </div>
 
       {/* Venue cards */}
-      <div style={{ padding: '0 16px 24px' }}>
+      <div style={{ padding: desktop ? '20px 32px 32px' : '0 16px 24px' }}>
         <div style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 10 }}>{filtered.length} venue{filtered.length !== 1 ? 's' : ''} near you</div>
+        <ResponsiveGrid min={300}>
         {filtered.map(v => (
           <button key={v.id} onClick={() => onVenueTap(v.id)}
             style={{ width: '100%', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 16, marginBottom: 14, overflow: 'hidden', cursor: 'pointer', textAlign: 'left', display: 'block' }}>
@@ -145,6 +149,7 @@ export default function ExploreScreen({ onVenueTap }: { onVenueTap: (id: string)
             </div>
           </button>
         ))}
+        </ResponsiveGrid>
       </div>
     </div>
   )

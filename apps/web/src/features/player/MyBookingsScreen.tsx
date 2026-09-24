@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import EmptyState from '../../ui/EmptyState'
+import { useIsDesktop } from '../../lib/useIsDesktop'
+import ResponsiveGrid from '../../ui/ResponsiveGrid'
 
 const UPCOMING = [
   { ref: 'TRF-4K7Q', venue: 'Greenfield Arena', area: 'Kilimani', pitch: 'Pitch A · 5-a-side', date: 'Tue 22 Sep', time: '14:00–15:00', price: 2500, status: 'confirmed' as const, canCancel: true },
@@ -20,11 +22,12 @@ const STATUS_COLOR: Record<string, { color: string; bg: string }> = {
 }
 
 export default function MyBookingsScreen({ onBack }: { onBack: () => void }) {
+  const desktop = useIsDesktop()
   const [tab, setTab] = useState<'upcoming' | 'past' | 'cancelled'>('upcoming')
 
   return (
     <div>
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '52px 16px 0' }}>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 0' : '52px 16px 0' }}>
         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)', marginBottom: 14 }}>My Bookings</div>
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--color-border)' }}>
           {(['upcoming', 'past', 'cancelled'] as const).map(t => (
@@ -36,10 +39,11 @@ export default function MyBookingsScreen({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: desktop ? '24px 32px' : '16px' }}>
         {tab === 'cancelled' && (
           <EmptyState icon="📭" title="No cancelled bookings" message="Bookings you cancel, or that a venue declines, will show up here." action="Find a pitch" onAction={onBack} />
         )}
+        <ResponsiveGrid>
         {tab === 'upcoming' && UPCOMING.map(b => (
           <div key={b.ref} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 16, marginBottom: 12, overflow: 'hidden' }}>
             {/* Green header stripe */}
@@ -98,6 +102,7 @@ export default function MyBookingsScreen({ onBack }: { onBack: () => void }) {
             )}
           </div>
         ))}
+        </ResponsiveGrid>
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { sessionForPhone } from '../../mocks/data'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 import type { Session } from '../../types'
 
 const DEMO_CODE = '123456'
@@ -11,6 +12,7 @@ export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) 
   const [error, setError] = useState(false)
   const [resendIn, setResendIn] = useState(45)
   const inputs = useRef<(HTMLInputElement | null)[]>([])
+  const desktop = useIsDesktop()
 
   const digits = phone.replace(/\D/g, '')
   const phoneValid = digits.length === 9
@@ -60,7 +62,7 @@ export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) 
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--color-surface)', minHeight: '100vh' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--color-surface)', minHeight: desktop ? '100%' : '100vh' }}>
       {/* Brand */}
       <div style={{ background: 'var(--color-primary)', padding: '84px 24px 36px', borderRadius: '0 0 28px 28px' }}>
         <div className="flex items-center gap-3">

@@ -2,8 +2,11 @@ import { useState } from 'react'
 import { CUSTOMERS } from '../../mocks/data'
 import EmptyState from '../../ui/EmptyState'
 import type { Customer } from '../../types'
+import { useIsDesktop } from '../../lib/useIsDesktop'
+import ResponsiveGrid from '../../ui/ResponsiveGrid'
 
 export default function CustomersScreen({ flagged, onCustomerTap, onNewBooking }: { flagged: string[]; onCustomerTap: (c: Customer) => void; onNewBooking: () => void }) {
+  const desktop = useIsDesktop()
   const [query, setQuery] = useState('')
   const filtered = CUSTOMERS.filter(c =>
     c.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -12,7 +15,7 @@ export default function CustomersScreen({ flagged, onCustomerTap, onNewBooking }
 
   return (
     <div>
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '52px 16px 12px' }}>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 12px' : '52px 16px 12px' }}>
         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)', marginBottom: 12 }}>Customers</div>
         <div style={{ position: 'relative' }}>
           <input value={query} onChange={e => setQuery(e.target.value)}
@@ -22,12 +25,13 @@ export default function CustomersScreen({ flagged, onCustomerTap, onNewBooking }
         </div>
       </div>
 
-      <div style={{ padding: '0 16px 16px' }}>
+      <div style={{ padding: desktop ? '16px 32px 32px' : '0 16px 16px' }}>
         {filtered.length === 0 && (
           <EmptyState icon="🔍" title={`No customers match "${query}"`} message="Customers are added automatically when you save a booking for them." action="+ New booking" onAction={onNewBooking} />
         )}
+        <ResponsiveGrid>
         {filtered.map((c, i) => (
-          <button key={c.name} onClick={() => onCustomerTap(c)} style={{ width: '100%', textAlign: 'left', display: 'block', background: 'var(--color-surface)', borderRadius: i === 0 ? '0 0 12px 12px' : 12, border: '1px solid var(--color-border)', borderTop: i === 0 ? 'none' : '1px solid var(--color-border)', padding: '14px', marginBottom: 8, cursor: 'pointer' }}>
+          <button key={c.name} onClick={() => onCustomerTap(c)} style={{ width: '100%', textAlign: 'left', display: 'block', background: 'var(--color-surface)', borderRadius: i === 0 && !desktop ? '0 0 12px 12px' : 12, border: '1px solid var(--color-border)', borderTop: i === 0 && !desktop ? 'none' : '1px solid var(--color-border)', padding: '14px', marginBottom: 8, cursor: 'pointer' }}>
             <div className="flex items-start justify-between gap-2">
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="flex items-center gap-2">
@@ -49,6 +53,7 @@ export default function CustomersScreen({ flagged, onCustomerTap, onNewBooking }
             </div>
           </button>
         ))}
+        </ResponsiveGrid>
       </div>
     </div>
   )

@@ -3,6 +3,7 @@ import { TODAY_BOOKINGS, PENDING_REQUESTS, PAST_UNPAID, VENUE } from '../../mock
 import { StatusPill, PayPill } from '../../ui/Pill'
 import StatCard from '../../ui/StatCard'
 import Skeleton from '../../ui/Skeleton'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 import { NoShowBadge, Countdown, type RequestDecision } from '../requests/BookingRequestsScreen'
 import type { Booking } from '../../types'
 
@@ -16,6 +17,7 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
   onSeeRequests: () => void
 }) {
   // Simulated first load so the skeleton state is visible
+  const desktop = useIsDesktop()
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 700)
@@ -35,7 +37,7 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
   return (
     <div>
       {/* Header */}
-      <div style={{ background: 'var(--color-primary)', padding: '52px 20px 20px' }}>
+      <div style={{ background: 'var(--color-primary)', padding: desktop ? '28px 32px 24px' : '52px 20px 20px' }}>
         <div className="flex items-center justify-between mb-1">
           <div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 500, marginBottom: 2 }}>Tue 22 Sep 2026</div>
@@ -49,16 +51,18 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
         </div>
       </div>
 
-      <div style={{ padding: '16px 16px 0' }}>
-        {loading ? <TodaySkeleton /> : <>
+      <div style={{ padding: desktop ? '24px 32px 8px' : '16px 16px 0' }}>
+        {loading ? <TodaySkeleton desktop={desktop} /> : <>
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: desktop ? 'repeat(4, minmax(0, 1fr))' : '1fr 1fr', gap: desktop ? 16 : 10, marginBottom: desktop ? 28 : 20 }}>
           <StatCard label="Bookings today" value={`${confirmed.length}`} sub={`of ${TODAY_BOOKINGS.length} total`} />
           <StatCard label="Occupancy" value="72%" sub="21 of 29 hours" />
           <StatCard label="Collected" value="KES 31,000" sub="today" valueColor="var(--color-primary)" />
           <StatCard label="Unpaid" value="KES 7,500" sub="3 bookings" valueColor="var(--color-noshow)" />
         </div>
 
+        {/* Desktop: Needs attention and Up next side by side */}
+        <div style={desktop ? { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 24, alignItems: 'start' } : undefined}>
         {/* Needs attention */}
         {(visibleRequests.length > 0 || PAST_UNPAID.length > 0) && (
           <section style={{ marginBottom: 20 }}>
@@ -141,16 +145,17 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
             ))}
           </div>
         </section>
+        </div>
         </>}
       </div>
     </div>
   )
 }
 
-function TodaySkeleton() {
+function TodaySkeleton({ desktop }: { desktop: boolean }) {
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: desktop ? 'repeat(4, minmax(0, 1fr))' : '1fr 1fr', gap: desktop ? 16 : 10, marginBottom: 20 }}>
         {[0, 1, 2, 3].map(i => (
           <div key={i} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 14, padding: 14 }}>
             <Skeleton width={80} height={12} />

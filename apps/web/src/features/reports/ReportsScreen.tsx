@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 
 const DAYS_DATA = [
   { day: 'Mon', cash: 8000, mpesa: 12000, other: 1000 },
@@ -14,13 +15,14 @@ const DAYS_DATA = [
 type Range = 'week' | 'month' | 'custom'
 
 export default function ReportsScreen() {
+  const desktop = useIsDesktop()
   const [range, setRange] = useState<Range>('week')
 
   const total = DAYS_DATA.reduce((s, d) => s + d.cash + d.mpesa + d.other, 0)
 
   return (
     <div>
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '52px 16px 12px' }}>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 12px' : '52px 16px 12px' }}>
         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)', marginBottom: 12 }}>Reports</div>
 
         <div className="flex gap-2">
@@ -33,7 +35,7 @@ export default function ReportsScreen() {
         </div>
       </div>
 
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: desktop ? '24px 32px' : '16px' }}>
         {/* Total */}
         <div style={{ background: 'var(--color-primary)', borderRadius: 14, padding: '18px 20px', marginBottom: 16 }}>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>Total collected this week</div>

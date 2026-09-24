@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import Toggle from '../../ui/Toggle'
 import { customerByName, initials } from '../../mocks/data'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 
 export default function ProfileScreen({ name, phone, onSignOut }: { name: string; phone: string; onSignOut: () => void }) {
+  const desktop = useIsDesktop()
   const stats = customerByName(name)
   const [smsReminders, setSmsReminders] = useState(true)
   const [bookingUpdates, setBookingUpdates] = useState(true)
@@ -10,7 +12,7 @@ export default function ProfileScreen({ name, phone, onSignOut }: { name: string
 
   return (
     <div>
-      <div style={{ background: 'var(--color-primary)', padding: '52px 16px 28px', textAlign: 'center' }}>
+      <div style={{ background: 'var(--color-primary)', padding: desktop ? '28px 32px 28px' : '52px 16px 28px', textAlign: 'center' }}>
         <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--color-accent)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: 'var(--color-primary-dark)', marginBottom: 10 }}>
           {initials(name)}
         </div>
@@ -26,7 +28,7 @@ export default function ProfileScreen({ name, phone, onSignOut }: { name: string
         </div>
       </div>
 
-      <div style={{ padding: '16px' }}>
+      <div style={desktop ? { padding: '24px 32px', maxWidth: 720, margin: '0 auto' } : { padding: '16px' }}>
         {/* Account details */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Account</div>

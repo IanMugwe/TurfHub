@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { PENDING_REQUESTS, customerByName } from '../../mocks/data'
 import EmptyState from '../../ui/EmptyState'
 import type { Booking } from '../../types'
+import { useIsDesktop } from '../../lib/useIsDesktop'
+import ResponsiveGrid from '../../ui/ResponsiveGrid'
 
 export type RequestDecision = 'accepted' | 'rejected'
 
@@ -26,6 +28,7 @@ export default function BookingRequestsScreen({ decisions, onDecide, onBack, onB
   onBack: () => void
   onBookingTap: (b: Booking) => void
 }) {
+  const desktop = useIsDesktop()
   const [toast, setToast] = useState<string | null>(null)
   const open = PENDING_REQUESTS.filter(r => !decisions[r.id])
 
@@ -37,7 +40,7 @@ export default function BookingRequestsScreen({ decisions, onDecide, onBack, onB
 
   return (
     <div>
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '52px 16px 14px' }}>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 14px' : '52px 16px 14px' }}>
         <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', padding: '6px 0', marginBottom: 4 }}>‹ Today</button>
         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)' }}>
           Booking requests {open.length > 0 && <span style={{ color: 'var(--color-muted)', fontWeight: 500 }}>({open.length})</span>}
@@ -54,7 +57,8 @@ export default function BookingRequestsScreen({ decisions, onDecide, onBack, onB
       {open.length === 0 ? (
         <EmptyState icon="🎉" title="All caught up" message="No booking requests are waiting. New ones from the app will show up here." action="Back to Today" onAction={onBack} />
       ) : (
-        <div style={{ padding: '12px 16px' }}>
+        <div style={{ padding: desktop ? '20px 32px' : '12px 16px' }}>
+          <ResponsiveGrid min={340}>
           {open.map(r => (
             <div key={r.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 14, padding: '14px', marginBottom: 10 }}>
               <button onClick={() => onBookingTap(r)} style={{ width: '100%', background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
@@ -85,6 +89,7 @@ export default function BookingRequestsScreen({ decisions, onDecide, onBack, onB
               </div>
             </div>
           ))}
+          </ResponsiveGrid>
         </div>
       )}
     </div>

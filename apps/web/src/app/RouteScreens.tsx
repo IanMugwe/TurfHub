@@ -20,6 +20,7 @@ import ProfileScreen from '../features/player/ProfileScreen'
 import type { SlotSelection } from '../features/player/types'
 import { VENUE, customerByPhoneParam, initials } from '../mocks/data'
 import { phoneToParam } from '../lib/format'
+import { useIsDesktop } from '../lib/useIsDesktop'
 import type { Session } from '../types'
 
 /** Where a signed-in person lands */
@@ -35,8 +36,18 @@ export function Home() {
 export function Login() {
   const { session, signIn } = useAppState()
   const navigate = useNavigate()
+  const desktop = useIsDesktop()
   if (session) return <Navigate to={homeFor(session)} replace />
-  return <SignInScreen onSignedIn={s => { signIn(s); navigate(homeFor(s), { replace: true }) }} />
+  const screen = <SignInScreen onSignedIn={s => { signIn(s); navigate(homeFor(s), { replace: true }) }} />
+  if (!desktop) return screen
+  // Desktop: the sign-in screen as a centred card
+  return (
+    <div style={{ flex: 1, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-surface-2)', padding: 24 }}>
+      <div style={{ width: 420, height: 'min(760px, calc(100vh - 48px))', display: 'flex', flexDirection: 'column', borderRadius: 24, overflow: 'hidden', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', background: 'var(--color-surface)' }}>
+        {screen}
+      </div>
+    </div>
+  )
 }
 
 function useSignOut() {

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import type { SlotSelection } from './types'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 
 export default function ReviewBooking({ slot, onBack, onConfirm }: {
   slot: SlotSelection
   onBack: () => void
   onConfirm: (status: 'confirmed' | 'pending') => void
 }) {
+  const desktop = useIsDesktop()
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('+254 ')
   const [notes, setNotes] = useState('')
@@ -13,7 +15,7 @@ export default function ReviewBooking({ slot, onBack, onConfirm }: {
   return (
     <div>
       {/* Header */}
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '52px 16px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 14px' : '52px 16px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid var(--color-border)', background: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--color-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
         <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>Review booking</div>
       </div>

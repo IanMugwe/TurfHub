@@ -4,6 +4,7 @@ import StatCard from '../../ui/StatCard'
 import EmptyState from '../../ui/EmptyState'
 import { StatusPill, PayPill } from '../../ui/Pill'
 import type { Booking, Customer } from '../../types'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 
 export default function CustomerDetailScreen({ customer: c, flagged, onToggleFlag, onBack, onBookingTap, onNewBooking }: {
   customer: Customer
@@ -13,6 +14,7 @@ export default function CustomerDetailScreen({ customer: c, flagged, onToggleFla
   onBookingTap: (b: Booking) => void
   onNewBooking: () => void
 }) {
+  const desktop = useIsDesktop()
   const [notes, setNotes] = useState(c.notes ?? '')
   const history = bookingsFor(c.name)
   const initials = c.name.split(' ').map(w => w[0]).slice(0, 2).join('')
@@ -20,7 +22,7 @@ export default function CustomerDetailScreen({ customer: c, flagged, onToggleFla
   return (
     <div style={{ paddingBottom: 90 }}>
       {/* Header */}
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '52px 16px 16px' }}>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: desktop ? '28px 32px 16px' : '52px 16px 16px' }}>
         <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', padding: '6px 0', marginBottom: 8 }}>‹ Customers</button>
         <div className="flex items-center gap-3">
           <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, flexShrink: 0 }}>{initials}</div>
@@ -38,7 +40,7 @@ export default function CustomerDetailScreen({ customer: c, flagged, onToggleFla
         </div>
       </div>
 
-      <div style={{ padding: '14px 16px 0' }}>
+      <div style={{ padding: desktop ? '24px 32px 0' : '14px 16px 0' }}>
         {flagged && (
           <div style={{ background: 'var(--color-noshow-bg)', border: '1px solid var(--color-noshow-border)', borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-noshow)' }}>🚩 Flagged customer</div>
@@ -47,7 +49,7 @@ export default function CustomerDetailScreen({ customer: c, flagged, onToggleFla
         )}
 
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: desktop ? 'repeat(4, minmax(0, 1fr))' : '1fr 1fr', gap: desktop ? 16 : 10, marginBottom: 20 }}>
           <StatCard label="Visits" value={`${c.visits}`} sub={`Last: ${c.lastVisit}`} />
           <StatCard label="Total paid" value={`KES ${c.totalPaid.toLocaleString()}`} valueColor="var(--color-primary)" />
           <StatCard label="No-shows" value={`${c.noShows}`} valueColor={c.noShows > 0 ? 'var(--color-noshow)' : undefined} sub={c.noShows > 0 ? `${Math.round((c.noShows / c.visits) * 100)}% of bookings` : 'Always turns up'} />
@@ -91,9 +93,9 @@ export default function CustomerDetailScreen({ customer: c, flagged, onToggleFla
       </div>
 
       {/* Sticky CTA */}
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', padding: '12px 16px 20px', zIndex: 100 }}>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', padding: desktop ? '12px 32px' : '12px 16px 20px', zIndex: 100, ...(desktop && { display: 'flex', justifyContent: 'flex-end' }) }}>
         <button onClick={onNewBooking}
-          style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
+          style={{ width: desktop ? 'auto' : '100%', padding: desktop ? '13px 28px' : '15px', borderRadius: 14, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
           + New booking for this customer
         </button>
       </div>

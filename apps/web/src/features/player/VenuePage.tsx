@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { SlotSelection } from './types'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 
 const PITCHES = [
   { id: 'A', name: 'Pitch A', type: '5-a-side', priceOffPeak: 2500, pricePeak: 3500 },
@@ -23,6 +24,7 @@ const BOOKED: Record<string, Record<string, string[]>> = {
 }
 
 export default function VenuePage({ onBack, onBook }: { onBack: () => void; onBook: (slot: SlotSelection) => void }) {
+  const desktop = useIsDesktop()
   const [selectedPitch, setSelectedPitch] = useState('A')
   const [selectedDay, setSelectedDay] = useState(1)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
@@ -59,7 +61,7 @@ export default function VenuePage({ onBack, onBook }: { onBack: () => void; onBo
   return (
     <div>
       {/* Photo gallery */}
-      <div style={{ position: 'relative', height: 240, background: 'var(--color-confirmed-bg)', flexShrink: 0 }}>
+      <div style={{ position: 'relative', height: desktop ? 360 : 240, background: 'var(--color-confirmed-bg)', flexShrink: 0 }}>
         <img src={IMAGES[imgIdx]} alt="Venue" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         {/* Back button */}
         <button onClick={onBack} style={{ position: 'absolute', top: 48, left: 16, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 18, backdropFilter: 'blur(4px)' }}>‹</button>
@@ -132,7 +134,7 @@ export default function VenuePage({ onBack, onBook }: { onBack: () => void; onBo
         </div>
 
         {/* Slot grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 90 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: desktop ? 'repeat(6, 1fr)' : 'repeat(4, 1fr)', gap: 8, marginBottom: 90 }}>
           {ALL_SLOTS.map(slot => {
             const h = parseInt(slot)
             const isPeak = h >= 17 && h < 22

@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { TODAY_BOOKINGS, VENUE, NOW_HOUR } from '../../mocks/data'
 import type { Booking } from '../../types'
+import { useIsDesktop } from '../../lib/useIsDesktop'
 
 const STATUS_BG: Record<string, string> = {
   confirmed: 'var(--color-confirmed-bg)',
@@ -48,6 +49,7 @@ function bookingHeight(b: Booking): number {
 const NOW_TOP = (NOW_HOUR - 6) * ROW_H
 
 export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBooking: (pitchId?: string, hour?: number) => void; onBookingTap: (b: Booking) => void }) {
+  const desktop = useIsDesktop()
   const [selectedDay, setSelectedDay] = useState(1)
   const [view, setView] = useState<'day' | 'week'>('day')
   const [selectedPitch, setSelectedPitch] = useState('A') // for week view
@@ -58,7 +60,7 @@ export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBo
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       {/* ── Header (fixed) ── */}
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', flexShrink: 0, paddingTop: 46 }}>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', flexShrink: 0, paddingTop: desktop ? 12 : 46 }}>
         {/* Date strip */}
         <div style={{ display: 'flex', gap: 4, padding: '10px 14px 8px', overflowX: 'auto' }}>
           {DAYS.map((d, i) => (
