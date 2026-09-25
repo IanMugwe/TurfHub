@@ -33,6 +33,19 @@ describe('routing', () => {
     expect(screen.getByRole('button', { name: 'Reports' })).toBeInTheDocument()
   })
 
+  it('signs a manager in when the number is typed with a leading 0', async () => {
+    const user = userEvent.setup()
+    const router = renderAt('/login')
+    await user.type(screen.getByPlaceholderText('712 345 678'), '0733000222')
+    expect(screen.getByPlaceholderText('712 345 678')).toHaveValue('733 000 222')
+    await user.click(screen.getByRole('button', { name: 'Send code' }))
+    const boxes = await screen.findAllByRole('textbox')
+    for (const [i, digit] of [...'123456'].entries()) await user.type(boxes[i], digit)
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/v/greenfield/today'))
+    expect(screen.queryByRole('button', { name: 'Reports' })).not.toBeInTheDocument()
+  })
+
   it('keeps managers out of Reports', async () => {
     const router = renderAt('/v/greenfield/reports', MANAGER)
     expect(await screen.findByRole('button', { name: 'Today' })).toBeInTheDocument()

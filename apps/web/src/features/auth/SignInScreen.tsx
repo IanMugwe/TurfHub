@@ -25,7 +25,11 @@ export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) 
   }, [step, resendIn])
 
   function formatPhone(raw: string) {
-    const d = raw.replace(/\D/g, '').slice(0, 9)
+    // Accept the number however it's typed: 0722…, 722… or a pasted +254 722…
+    let d = raw.replace(/\D/g, '')
+    if (d.startsWith('254')) d = d.slice(3)
+    else if (d.startsWith('0')) d = d.slice(1)
+    d = d.slice(0, 9)
     return [d.slice(0, 3), d.slice(3, 6), d.slice(6, 9)].filter(Boolean).join(' ')
   }
 
