@@ -1,1 +1,7 @@
-{}
+{
+  "title": "Turf · Pitch bookings for Nairobi",
+  "description": "Book a football pitch in seconds, or run your venue's bookings, payments and reports from your phone.",
+  "icons": {
+    "icon": "/favicon.svg"
+  }
+}

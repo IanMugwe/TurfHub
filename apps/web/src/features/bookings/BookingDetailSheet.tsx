@@ -1,20 +1,39 @@
 import { useState } from 'react'
-import type { Booking } from '../../types'
+import type { Booking, PaymentMethod } from '../../types'
 import { StatusPill, PayPill } from '../../ui/Pill'
 import BottomSheet from '../../ui/BottomSheet'
 import { NOW_HOUR, startHour } from '../../mocks/data'
+import { useDemoStore } from '../../app/DemoStore'
+import { balanceOf } from '../../lib/bookings'
+import { todayKey } from '../../lib/dates'
+import { COMING_SOON, useToast } from '../../ui/Toast'
+import { formatKES } from '@turfhub/validation'
+
+const METHOD_LABEL: Record<PaymentMethod, string> = { cash: '💵 Cash', mpesa: '📱 M-Pesa', other: '🏦 Other' }
 
 const SOURCE_LABEL: Record<string, string> = { walkin: '🚶 Walk-in', phone: '📞 Phone', whatsapp: '💬 WhatsApp', app: '📱 App' }
 
 export default function BookingDetailSheet({ booking: b, onClose }: { booking: Booking; onClose: () => void }) {
   const [showPayment, setShowPayment] = useState(false)
-  const [amount, setAmount] = useState(String(b.amount - b.paid))
-  const [method, setMethod] = useState('cash')
+  const [amount, setAmount] = useState(String(balanceOf(b)))
+  const [method, setMethod] = useState<PaymentMethod>('cash')
   const [mpesaCode, setMpesaCode] = useState('')
   const [scope, setScope] = useState<'one' | 'following'>('one')
 
-  const balance = b.amount - b.paid
-  const hasStarted = startHour(b) <= NOW_HOUR || b.date !== 'Tue 22 Sep'
+  const { recordPayment, waiveBalance, cancelBooking, markNoShow } = useDemoStore()
+  const toast = useToast()
+  const today = todayKey()
+  const balance = balanceOf(b)
+  const hasStarted = b.dateKey < today || (b.dateKey === today && startHour(b) <= NOW_HOUR)
+  const isOpen = b.status === 'confirmed' || b.status === 'pending' || b.status === 'completed'
+  const payAmount = Math.round(Number(amount))
+
+  function savePayment() {
+    recordPayment(b.ref, payAmount, method, method === 'mpesa' ? mpesaCode : undefined)
+    toast(`Payment recorded · ${formatKES(Math.min(payAmount, balance))} ${method === 'mpesa' ? 'M-Pesa' : method === 'cash' ? 'cash' : ''}`.trim())
+    setShowPayment(false)
+    setMpesaCode('')
+  }
 
   return (
     <BottomSheet onClose={onClose} maxHeight="92vh" label={`Booking ${b.ref}`}>
@@ -81,8 +100,18 @@ export default function BookingDetailSheet({ booking: b, onClose }: { booking: B
               </div>
             )}
 
+            {/* Payments recorded so far */}
+            {(b.payments ?? []).map((p, i) => (
+              <div key={i} className="flex justify-between" style={{ fontSize: 13, color: 'var(--color-muted)', padding: '2px 0 2px 10px' }}>
+                <span>{METHOD_LABEL[p.method]}{p.code && <span style={{ fontFamily: 'monospace' }}> · {p.code}</span>} · {p.at}</span>
+                <span>{formatKES(p.amount)}</span>
+              </div>
+            ))}
+            {b.payment === 'waived' && (
+              <div style={{ fontSize: 13, color: 'var(--color-muted)', padding: '2px 0 2px 10px' }}>Remaining balance waived</div>
+            )}
             {balance > 0 && !showPayment && (
-              <button onClick={() => setShowPayment(true)}
+              <button onClick={() => { setAmount(String(balance)); setShowPayment(true) }}
                 style={{ width: '100%', marginTop: 12, padding: '11px', borderRadius: 10, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
                 Record payment
               </button>
@@ -95,7 +124,7 @@ export default function BookingDetailSheet({ booking: b, onClose }: { booking: B
                 <input value={amount} onChange={e => setAmount(e.target.value)} type="number"
                   style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-surface)', fontSize: 15, color: 'var(--color-text)', marginBottom: 10, display: 'block', outline: 'none' }} />
                 <div className="flex gap-2 mb-2">
-                  {[['cash', '💵 Cash'], ['mpesa', '📱 M-Pesa'], ['other', '🏦 Other']].map(([id, label]) => (
+                  {(Object.entries(METHOD_LABEL) as [PaymentMethod, string][]).map(([id, label]) => (
                     <button key={id} onClick={() => setMethod(id)}
                       style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: method === id ? 'none' : '1px solid var(--color-border)', background: method === id ? 'var(--color-primary)' : 'var(--color-surface)', color: method === id ? '#fff' : 'var(--color-muted)', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
                       {label}
@@ -106,11 +135,12 @@ export default function BookingDetailSheet({ booking: b, onClose }: { booking: B
                   <input value={mpesaCode} onChange={e => setMpesaCode(e.target.value.toUpperCase())} placeholder="M-Pesa code e.g. SIJ4X8Y2ZQ"
                     style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-surface)', fontSize: 14, marginBottom: 8, display: 'block', outline: 'none', fontFamily: 'monospace' }} />
                 )}
-                <button onClick={() => { setShowPayment(false); onClose() }}
+                <button onClick={savePayment} disabled={!(payAmount > 0)}
                   style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginBottom: 6 }}>
                   Save payment
                 </button>
-                <button style={{ width: '100%', padding: '8px', background: 'none', border: 'none', color: 'var(--color-muted)', fontSize: 13, cursor: 'pointer' }}>
+                <button onClick={() => { waiveBalance(b.ref); setShowPayment(false); toast(`Waived ${formatKES(balance)} for ${b.customer}`) }}
+                  style={{ width: '100%', padding: '8px', background: 'none', border: 'none', color: 'var(--color-muted)', fontSize: 13, cursor: 'pointer' }}>
                   Waive remaining balance
                 </button>
               </div>
@@ -133,18 +163,25 @@ export default function BookingDetailSheet({ booking: b, onClose }: { booking: B
             </div>
           )}
 
-          {/* Actions */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {['Move', 'Extend', 'Cancel booking'].map(action => (
-              <button key={action} style={{ padding: '11px', minHeight: 44, borderRadius: 10, border: '1px solid var(--color-border)', background: 'transparent', color: action === 'Cancel booking' ? 'var(--color-noshow)' : 'var(--color-text)', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>{action}</button>
-            ))}
-            <button disabled={!hasStarted}
-              style={{ padding: '11px', minHeight: 44, borderRadius: 10, border: `1px solid ${hasStarted ? 'var(--color-noshow-border)' : 'var(--color-border)'}`, background: hasStarted ? 'var(--color-noshow-bg)' : 'transparent', color: hasStarted ? 'var(--color-noshow)' : 'var(--color-muted-light)', fontSize: 14, fontWeight: 500, cursor: hasStarted ? 'pointer' : 'not-allowed' }}>
-              Mark no-show
-            </button>
-          </div>
-          {!hasStarted && (
-            <div style={{ fontSize: 12, color: 'var(--color-muted)', textAlign: 'right', marginTop: 6 }}>No-show available after {b.time.split('–')[0]}</div>
+          {/* Actions (only while the booking is still open) */}
+          {isOpen && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {['Move', 'Extend'].map(action => (
+                  <button key={action} onClick={() => toast(`${action}: ${COMING_SOON.toLowerCase()}`)}
+                    style={{ padding: '11px', minHeight: 44, borderRadius: 10, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>{action}</button>
+                ))}
+                <button onClick={() => { cancelBooking(b.ref); toast(`Cancelled ${b.customer} · ${b.time}`); onClose() }}
+                  style={{ padding: '11px', minHeight: 44, borderRadius: 10, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-noshow)', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Cancel booking</button>
+                <button disabled={!hasStarted} onClick={() => { markNoShow(b.ref); toast(`Marked ${b.customer} as a no-show`) }}
+                  style={{ padding: '11px', minHeight: 44, borderRadius: 10, border: `1px solid ${hasStarted ? 'var(--color-noshow-border)' : 'var(--color-border)'}`, background: hasStarted ? 'var(--color-noshow-bg)' : 'transparent', color: hasStarted ? 'var(--color-noshow)' : 'var(--color-muted-light)', fontSize: 14, fontWeight: 500, cursor: hasStarted ? 'pointer' : 'not-allowed' }}>
+                  Mark no-show
+                </button>
+              </div>
+              {!hasStarted && (
+                <div style={{ fontSize: 12, color: 'var(--color-muted)', textAlign: 'right', marginTop: 6 }}>No-show available after {b.time.split('–')[0]}</div>
+              )}
+            </>
           )}
         </div>
     </BottomSheet>

@@ -2,14 +2,17 @@ import { useState } from 'react'
 import type { SlotSelection } from './types'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 
-export default function ReviewBooking({ slot, onBack, onConfirm }: {
+export default function ReviewBooking({ slot, onBack, onConfirm, initialName = '', initialPhone = '+254 ' }: {
   slot: SlotSelection
   onBack: () => void
-  onConfirm: (status: 'confirmed' | 'pending') => void
+  onConfirm: (details: { name: string; phone: string; notes: string }) => void
+  /** Pre-filled from the signed-in player */
+  initialName?: string
+  initialPhone?: string
 }) {
   const desktop = useIsDesktop()
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('+254 ')
+  const [name, setName] = useState(initialName)
+  const [phone, setPhone] = useState(initialPhone)
   const [notes, setNotes] = useState('')
 
   return (
@@ -82,7 +85,7 @@ export default function ReviewBooking({ slot, onBack, onConfirm }: {
 
       {/* Sticky confirm button */}
       <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: 'var(--frame-width)', background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', padding: '12px 16px 28px', zIndex: 90 }}>
-        <button onClick={() => onConfirm('confirmed')} disabled={!name || phone.length < 10}
+        <button onClick={() => onConfirm({ name: name.trim(), phone: phone.trim(), notes })} disabled={!name || phone.length < 10}
           style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: name && phone.length >= 10 ? 'var(--color-primary)' : 'var(--color-border)', color: name && phone.length >= 10 ? '#fff' : 'var(--color-muted-light)', fontSize: 16, fontWeight: 700, cursor: name && phone.length >= 10 ? 'pointer' : 'not-allowed', transition: 'background 0.15s' }}>
           Confirm booking
         </button>

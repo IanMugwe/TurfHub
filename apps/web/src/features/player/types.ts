@@ -3,6 +3,8 @@ export interface SlotSelection {
   area: string
   pitch: string
   pitchType: string
+  /** "YYYY-MM-DD" */
+  dateKey: string
   date: string
   time: string
   price: number

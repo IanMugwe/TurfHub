@@ -21,6 +21,8 @@ Enter the number after the fixed `+254` prefix, then the code **`123456`**.
 
 A wrong code shows "That code is incorrect". Numbers and roles are defined in `apps/web/src/mocks/data.ts` (`STAFF_ACCOUNTS`, `CUSTOMERS`).
 
+The sign-in screen doesn't list these numbers unless `VITE_DEMO_HINTS=true` (see 1.2).
+
 Your sign-in is remembered in this browser, so a refresh keeps you signed in. To switch accounts, sign out: More › Sign out or Profile › Sign out on a phone, or the account menu (your name, top right) on desktop.
 
 ### 1.2 Settings for the sign-in step
@@ -32,6 +34,7 @@ Two environment variables control the code step. Put them in **`apps/web/.env.lo
 | `VITE_OTP_MODE` | `demo` *(default)* | Code screen shown; the demo code is accepted |
 | | `skip` | **Bypass:** no code screen. The button says "Continue" and signs you straight in |
 | `VITE_DEMO_OTP_CODE` | any 6 digits *(default `123456`)* | The code accepted in `demo` mode. Anything that isn't 6 digits falls back to `123456` |
+| `VITE_DEMO_HINTS` | `true` / *(unset)* | Shows the demo numbers and "Demo code: 123456" on the sign-in screen. **Off by default**, so a demo looks like the real product; keep the numbers on a cheat sheet instead |
 
 **Bypass the code step:**
 

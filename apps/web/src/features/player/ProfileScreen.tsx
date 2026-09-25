@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import Toggle from '../../ui/Toggle'
+import { useToast } from '../../ui/Toast'
 import { customerByName, initials } from '../../mocks/data'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 
 export default function ProfileScreen({ name, phone, onSignOut }: { name: string; phone: string; onSignOut: () => void }) {
+  const toast = useToast()
   const desktop = useIsDesktop()
   const stats = customerByName(name)
   const [smsReminders, setSmsReminders] = useState(true)
@@ -72,7 +74,7 @@ export default function ProfileScreen({ name, phone, onSignOut }: { name: string
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Favourites</div>
           <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 14 }}>
-            <button style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}>
+            <button onClick={() => toast('Favourites: coming soon')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}>
               <span style={{ fontSize: 20 }}>❤️</span>
               <span style={{ fontSize: 15, color: 'var(--color-text)' }}>Greenfield Arena</span>
               <span style={{ marginLeft: 'auto', color: 'var(--color-muted-light)', fontSize: 18 }}>›</span>

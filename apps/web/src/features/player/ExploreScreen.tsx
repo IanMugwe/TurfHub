@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useIsDesktop } from '../../lib/useIsDesktop'
+import { useToast } from '../../ui/Toast'
 import ResponsiveGrid from '../../ui/ResponsiveGrid'
 
 const VENUES = [
@@ -27,7 +28,7 @@ const VENUES = [
     amenities: ['💡 Floodlights', '🅿 Parking'],
     pitchTypes: ['5-a-side', '7-a-side'],
     nextSlots: ['19:00', '21:00'],
-    image: 'https://images.unsplash.com/photo-1551958219-acbc595f6c0a?w=600&h=300&fit=crop&auto=format',
+    image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&h=300&fit=crop&auto=format',
   },
   {
     id: '3',
@@ -47,6 +48,7 @@ const VENUES = [
 const FILTERS = ['All', '5-a-side', '7-a-side', '11-a-side']
 
 export default function ExploreScreen({ onVenueTap }: { onVenueTap: (id: string) => void }) {
+  const toast = useToast()
   const desktop = useIsDesktop()
   const [filter, setFilter] = useState('All')
   const [query, setQuery] = useState('')
@@ -72,10 +74,10 @@ export default function ExploreScreen({ onVenueTap }: { onVenueTap: (id: string)
 
       {/* Filter chips */}
       <div style={{ display: 'flex', gap: 8, padding: '12px 16px', overflowX: 'auto', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', ...(desktop && { padding: '20px 32px 0', background: 'transparent', borderBottom: 'none' }) }}>
-        <button style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-muted)', fontSize: 13, cursor: 'pointer' }}>
+        <button onClick={() => toast('Filter by date: coming soon')} style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-muted)', fontSize: 13, cursor: 'pointer' }}>
           📅 Date
         </button>
-        <button style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-muted)', fontSize: 13, cursor: 'pointer' }}>
+        <button onClick={() => toast('Filter by time: coming soon')} style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-muted)', fontSize: 13, cursor: 'pointer' }}>
           🕐 Time
         </button>
         {FILTERS.map(f => (
@@ -84,19 +86,19 @@ export default function ExploreScreen({ onVenueTap }: { onVenueTap: (id: string)
             {f}
           </button>
         ))}
-        <button style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-muted)', fontSize: 13, cursor: 'pointer' }}>
+        <button onClick={() => toast('Filter by price: coming soon')} style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-muted)', fontSize: 13, cursor: 'pointer' }}>
           💰 Price
         </button>
       </div>
 
       {/* Near me + List/Map */}
       <div className="flex items-center justify-between" style={{ padding: desktop ? '12px 32px 0' : '10px 16px', background: 'var(--color-bg)' }}>
-        <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 20, border: '1px solid var(--color-primary)', background: 'var(--color-primary-light)', color: 'var(--color-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+        <button onClick={() => toast('Near me: coming soon')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 20, border: '1px solid var(--color-primary)', background: 'var(--color-primary-light)', color: 'var(--color-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           📍 Near me
         </button>
         <div style={{ display: 'flex', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, overflow: 'hidden' }}>
           {['List', 'Map'].map((v, i) => (
-            <button key={v} style={{ padding: '6px 14px', border: 'none', background: i === 0 ? 'var(--color-primary)' : 'transparent', color: i === 0 ? '#fff' : 'var(--color-muted)', fontSize: 13, fontWeight: i === 0 ? 600 : 400, cursor: 'pointer' }}>{v}</button>
+            <button key={v} onClick={() => { if (v === 'Map') toast('Map view: coming soon') }} style={{ padding: '6px 14px', border: 'none', background: i === 0 ? 'var(--color-primary)' : 'transparent', color: i === 0 ? '#fff' : 'var(--color-muted)', fontSize: 13, fontWeight: i === 0 ? 600 : 400, cursor: 'pointer' }}>{v}</button>
           ))}
         </div>
       </div>
@@ -110,7 +112,7 @@ export default function ExploreScreen({ onVenueTap }: { onVenueTap: (id: string)
             style={{ width: '100%', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 16, marginBottom: 14, overflow: 'hidden', cursor: 'pointer', textAlign: 'left', display: 'block' }}>
             {/* Photo */}
             <div style={{ position: 'relative', height: 160, background: 'var(--color-confirmed-bg)' }}>
-              <img src={v.image} alt={v.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <img src={v.image} alt={v.name} onError={e => { e.currentTarget.style.visibility = 'hidden' }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.55)', borderRadius: 20, padding: '4px 10px', color: '#fff', fontSize: 12, fontWeight: 600, backdropFilter: 'blur(4px)' }}>
                 ★ {v.rating} ({v.reviews})
               </div>

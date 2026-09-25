@@ -31,7 +31,7 @@ export default function TopNav<T extends string>({ items = [], active = null, on
             const isActive = active === id
             return (
               <button key={id} onClick={() => onSelect?.(id)} aria-current={isActive ? 'page' : undefined}
-                style={{ padding: '0 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, fontWeight: isActive ? 600 : 500, color: isActive ? 'var(--color-primary)' : 'var(--color-muted)', borderBottom: `2px solid ${isActive ? 'var(--color-primary)' : 'transparent'}`, marginBottom: -1 }}>
+                style={{ padding: '0 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, fontWeight: isActive ? 600 : 500, whiteSpace: 'nowrap', color: isActive ? 'var(--color-primary)' : 'var(--color-muted)', borderBottom: `2px solid ${isActive ? 'var(--color-primary)' : 'transparent'}`, marginBottom: -1 }}>
                 {label}
               </button>
             )
@@ -49,10 +49,10 @@ export default function TopNav<T extends string>({ items = [], active = null, on
           </button>
           {user && (
             <div style={{ position: 'relative' }}>
-              <button onClick={() => setMenuOpen(o => !o)} aria-haspopup="menu" aria-expanded={menuOpen}
+              <button onClick={() => setMenuOpen(o => !o)} aria-haspopup="menu" aria-expanded={menuOpen} aria-label={`Account: ${user.name}`}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px 4px 4px', borderRadius: 24, border: '1px solid var(--color-border)', background: 'var(--color-surface)', cursor: 'pointer' }}>
                 <span style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--color-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12, color: 'var(--color-primary-dark)' }}>{user.initials}</span>
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>{user.name}</span>
+                <span className="topnav-name" style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)', whiteSpace: 'nowrap' }}>{user.name}</span>
                 <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>▾</span>
               </button>
               {menuOpen && (

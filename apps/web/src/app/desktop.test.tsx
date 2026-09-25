@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderRoutes } from '../test/render'
 import { routes } from './routes'
@@ -73,15 +73,22 @@ describe('API status in the desktop footer', () => {
     expect(await screen.findByText('All systems normal')).toBeInTheDocument()
   })
 
-  it('shows a degraded API (503 with a valid body)', async () => {
-    vi.stubGlobal('fetch', health('degraded', 503))
+  // Visitors never see a warning: the app keeps working on local demo data without the API
+  it('shows nothing when the API is degraded', async () => {
+    const fetch = health('degraded', 503)
+    vi.stubGlobal('fetch', fetch)
     renderAt('/login')
-    expect(await screen.findByText('Service degraded')).toBeInTheDocument()
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    await new Promise(r => setTimeout(r, 50))
+    expect(within(screen.getByRole('contentinfo')).queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('shows the API as offline when it cannot be reached', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
+  it('shows nothing when the API cannot be reached', async () => {
+    const fetch = vi.fn(async () => { throw new TypeError('Failed to fetch') })
+    vi.stubGlobal('fetch', fetch)
     renderAt('/login')
-    expect(await screen.findByText('Server offline')).toBeInTheDocument()
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    await new Promise(r => setTimeout(r, 50))
+    expect(screen.getByRole('contentinfo')).not.toHaveTextContent(/offline|degraded/i)
   })
 })

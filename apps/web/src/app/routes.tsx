@@ -19,6 +19,7 @@ import {
   Confirmation,
   MyBookings,
   Profile,
+  ResetDemo,
 } from './RouteScreens'
 
 // Vite's base URL, without the trailing slash React Router doesn't expect
@@ -30,6 +31,7 @@ export const routes = [
     children: [
       { index: true, element: <Home /> },
       { path: 'login', element: <Login /> },
+      { path: 'reset-demo', element: <ResetDemo /> },
       {
         path: 'v/:venueId',
         element: <StaffLayout />,

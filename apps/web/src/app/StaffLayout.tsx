@@ -3,12 +3,13 @@ import { Navigate, Outlet, useLocation, useNavigate, useParams, useSearchParams 
 import { useAppState } from './AppState'
 import NewBookingSheet from '../features/bookings/NewBookingSheet'
 import BookingDetailSheet from '../features/bookings/BookingDetailSheet'
-import type { RequestDecision } from '../features/requests/BookingRequestsScreen'
 import TabBar, { type TabItem } from '../ui/TabBar'
 import SiteShell from './SiteShell'
 import { useIsDesktop } from '../lib/useIsDesktop'
 import { CalIcon, ChartIcon, HomeIcon, MoreIcon, PeopleIcon } from '../ui/icons'
-import { VENUE, customerByPhoneParam, findBooking, initials } from '../mocks/data'
+import { VENUE, initials } from '../mocks/data'
+import { useCustomers } from './useCustomers'
+import { useDemoStore } from './DemoStore'
 import { phoneToParam } from '@turfhub/validation'
 import type { Booking, Session } from '../types'
 import NotFound from './NotFound'
@@ -19,14 +20,14 @@ type StaffTab = 'today' | 'calendar' | 'customers' | 'reports' | 'settings'
 interface NewBookingOptions {
   pitch?: string
   hour?: number
+  /** "YYYY-MM-DD" */
+  date?: string
   customerPhone?: string
 }
 
 interface StaffState {
   session: StaffSession
   venueId: string
-  decisions: Record<string, RequestDecision>
-  decide: (id: string, d: RequestDecision) => void
   flagged: string[]
   toggleFlag: (name: string) => void
   openBooking: (b: Booking) => void
@@ -58,10 +59,10 @@ export default function StaffLayout() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
 
-  const [decisions, setDecisions] = useState<Record<string, RequestDecision>>({})
+  const { bookings } = useDemoStore()
+  const customers = useCustomers()
   const [flagged, setFlagged] = useState<string[]>(['Aisha Hassan'])
 
-  const decide = useCallback((id: string, d: RequestDecision) => setDecisions(ds => ({ ...ds, [id]: d })), [])
   const toggleFlag = useCallback((name: string) => setFlagged(f => (f.includes(name) ? f.filter(n => n !== name) : [...f, name])), [])
 
   // Sheets live in the URL so they survive refresh and the back button closes them
@@ -70,11 +71,12 @@ export default function StaffLayout() {
     p.set('new', '1')
     if (opts.pitch) p.set('turf', opts.pitch)
     if (opts.hour !== undefined) p.set('start', `${String(opts.hour).padStart(2, '0')}:00`)
+    if (opts.date) p.set('date', opts.date)
     if (opts.customerPhone) p.set('customer', phoneToParam(opts.customerPhone))
     return p
   }), [setParams])
   const closeSheet = useCallback(() => setParams(p => {
-    for (const k of ['booking', 'new', 'turf', 'start', 'customer']) p.delete(k)
+    for (const k of ['booking', 'new', 'turf', 'start', 'date', 'customer']) p.delete(k)
     return p
   }, { replace: true }), [setParams])
 
@@ -88,10 +90,10 @@ export default function StaffLayout() {
   const tabs = TABS.filter(t => t.id !== 'reports' || session.staffRole === 'owner')
   const activeTab = TABS.find(t => t.id === section)?.id ?? null
 
-  const detailBooking = params.get('booking') ? findBooking(params.get('booking')!) : undefined
-  const newFor = params.get('customer') ? customerByPhoneParam(params.get('customer')!) : undefined
+  const detailBooking = params.get('booking') ? bookings.find(b => b.ref === params.get('booking')) : undefined
+  const newFor = params.get('customer') ? customers.find(c => phoneToParam(c.phone) === params.get('customer')) : undefined
 
-  const state: StaffState = { session, venueId, decisions, decide, flagged, toggleFlag, openBooking, openNewBooking }
+  const state: StaffState = { session, venueId, flagged, toggleFlag, openBooking, openNewBooking }
 
   const sheets = (
     <>
@@ -101,6 +103,7 @@ export default function StaffLayout() {
           initialCustomer={newFor}
           initialPitch={params.get('turf') ?? undefined}
           initialTime={params.get('start') ?? undefined}
+          initialDate={params.get('date') ?? undefined}
           onClose={closeSheet}
         />
       )}
@@ -118,7 +121,7 @@ export default function StaffLayout() {
           onSelect: id => navigate(`/v/${venueId}/${id}`),
           action: (
             <button onClick={() => openNewBooking()}
-              style={{ padding: '9px 16px', borderRadius: 10, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              style={{ padding: '9px 16px', borderRadius: 10, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               + New booking
             </button>
           ),

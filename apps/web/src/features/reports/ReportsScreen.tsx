@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
+import { useToast } from '../../ui/Toast'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 
@@ -15,6 +16,7 @@ const DAYS_DATA = [
 type Range = 'week' | 'month' | 'custom'
 
 export default function ReportsScreen() {
+  const toast = useToast()
   const desktop = useIsDesktop()
   const [range, setRange] = useState<Range>('week')
 
@@ -27,7 +29,7 @@ export default function ReportsScreen() {
 
         <div className="flex gap-2">
           {(['week', 'month', 'custom'] as Range[]).map(r => (
-            <button key={r} onClick={() => setRange(r)}
+            <button key={r} onClick={() => (r === 'week' ? setRange(r) : toast(`${r === 'month' ? 'Monthly' : 'Custom'} reports: coming soon`))}
               style={{ padding: '6px 14px', borderRadius: 20, border: range === r ? 'none' : '1px solid var(--color-border)', background: range === r ? 'var(--color-primary)' : 'transparent', color: range === r ? '#fff' : 'var(--color-muted)', fontSize: 13, fontWeight: 500, cursor: 'pointer', textTransform: 'capitalize' }}>
               {r === 'week' ? 'This week' : r === 'month' ? 'This month' : 'Custom'}
             </button>
@@ -79,12 +81,12 @@ export default function ReportsScreen() {
                 <div key={i} style={{ fontSize: 10, color: 'var(--color-muted)', textAlign: 'center' }}>{d}</div>
               ))}
               {[6,9,12,15,18,21].map(h => (
-                <>
-                  <div key={h} style={{ fontSize: 10, color: 'var(--color-muted)', paddingTop: 2 }}>{h}:00</div>
+                <Fragment key={h}>
+                  <div style={{ fontSize: 10, color: 'var(--color-muted)', paddingTop: 2 }}>{h}:00</div>
                   {[0.3,0.6,0.5,0.8,0.9,1.0,0.9].map((occ, di) => (
                     <div key={di} style={{ height: 18, borderRadius: 3, background: `rgba(15,122,61,${h >= 17 && h < 22 ? occ * 1.2 : occ * 0.7})` }} />
                   ))}
-                </>
+                </Fragment>
               ))}
             </div>
           </div>
@@ -113,7 +115,7 @@ export default function ReportsScreen() {
           ))}
         </div>
 
-        <button style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1px solid var(--color-primary)', background: 'transparent', color: 'var(--color-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+        <button onClick={() => toast('CSV export: coming soon')} style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1px solid var(--color-primary)', background: 'transparent', color: 'var(--color-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
           Export CSV
         </button>
       </div>

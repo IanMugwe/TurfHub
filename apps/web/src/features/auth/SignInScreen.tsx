@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { sessionForPhone } from '../../mocks/data'
-import { DEMO_OTP_CODE, OTP_MODE } from '../../lib/otpConfig'
+import { DEMO_OTP_CODE, OTP_MODE, SHOW_DEMO_HINTS } from '../../lib/otpConfig'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 import type { Session } from '../../types'
 
@@ -94,9 +94,11 @@ export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) 
                 style={{ flex: 1, padding: '14px 12px', border: 'none', background: 'transparent', fontSize: 16, color: 'var(--color-text)', outline: 'none', letterSpacing: '0.02em', minWidth: 0 }} />
             </div>
 
-            <div style={{ fontSize: 12, color: 'var(--color-muted-light)', marginTop: 10, lineHeight: 1.6 }}>
-              Demo numbers — owner: 722 000 111 · manager: 733 000 222 · any other number opens the customer app
-            </div>
+            {SHOW_DEMO_HINTS && (
+              <div style={{ fontSize: 12, color: 'var(--color-muted-light)', marginTop: 10, lineHeight: 1.6 }}>
+                Demo numbers — owner: 722 000 111 · manager: 733 000 222 · any other number opens the customer app
+              </div>
+            )}
 
             <div style={{ flex: 1 }} />
             <button onClick={sendCode} disabled={!phoneValid}
@@ -123,7 +125,7 @@ export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) 
 
             {error ? (
               <div style={{ fontSize: 13, color: 'var(--color-noshow)', marginTop: 10, fontWeight: 500 }}>That code is incorrect. Check the SMS and try again.</div>
-            ) : (
+            ) : SHOW_DEMO_HINTS && (
               <div style={{ fontSize: 12, color: 'var(--color-muted-light)', marginTop: 10 }}>Demo code: {DEMO_OTP_CODE}</div>
             )}
 

@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import type { SlotSelection } from './types'
 import { useIsDesktop } from '../../lib/useIsDesktop'
+import { useDemoStore } from '../../app/DemoStore'
+import { isActive, rangeOf } from '../../lib/bookings'
+import { addDays, dayOfMonth, formatDay, todayKey, weekdayShort } from '../../lib/dates'
+import { NOW_HOUR } from '../../mocks/data'
+import { COMING_SOON, useToast } from '../../ui/Toast'
 
 const PITCHES = [
   { id: 'A', name: 'Pitch A', type: '5-a-side', priceOffPeak: 2500, pricePeak: 3500 },
@@ -8,35 +13,37 @@ const PITCHES = [
   { id: 'C', name: 'Pitch C', type: '11-a-side', priceOffPeak: 3000, pricePeak: 4500 },
 ]
 
-const DAYS = ['Mon 21', 'Tue 22', 'Wed 23', 'Thu 24', 'Fri 25', 'Sat 26', 'Sun 27']
-
 // slots from 06:00–22:00 in 1h steps
 const ALL_SLOTS = Array.from({ length: 17 }, (_, i) => {
   const h = i + 6
   return `${String(h).padStart(2, '0')}:00`
 })
 
-// Simulate some booked slots
-const BOOKED: Record<string, Record<string, string[]>> = {
-  A: { 'Tue 22': ['08:00', '09:00', '12:00', '17:00', '18:00'] },
-  B: { 'Tue 22': ['10:00', '11:00', '19:00', '20:00'] },
-  C: { 'Tue 22': ['14:00', '15:00', '16:00'] },
-}
-
 export default function VenuePage({ onBack, onBook }: { onBack: () => void; onBook: (slot: SlotSelection) => void }) {
   const desktop = useIsDesktop()
   const [selectedPitch, setSelectedPitch] = useState('A')
-  const [selectedDay, setSelectedDay] = useState(1)
+  const { bookings } = useDemoStore()
+  const toast = useToast()
+  const today = todayKey()
+  // The next 7 days, starting today
+  const DAYS = Array.from({ length: 7 }, (_, i) => addDays(today, i))
+  const [selectedDay, setSelectedDay] = useState(0)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [imgIdx, setImgIdx] = useState(0)
 
   const pitch = PITCHES.find(p => p.id === selectedPitch)!
-  const day = DAYS[selectedDay]
-  const booked = BOOKED[selectedPitch]?.[day] ?? []
+  const dateKey = DAYS[selectedDay]
+  const day = formatDay(dateKey)
+  // A slot is taken if any live booking on this pitch overlaps that hour, or the hour has already passed today
+  const taken = (slot: string) => {
+    const h = parseInt(slot)
+    if (dateKey === today && h <= NOW_HOUR) return true
+    return bookings.some(b => b.dateKey === dateKey && b.pitch === pitch.name && isActive(b) && rangeOf(b)[0] < (h + 1) * 60 && h * 60 < rangeOf(b)[1])
+  }
 
   const IMAGES = [
     'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=600&h=340&fit=crop&auto=format',
-    'https://images.unsplash.com/photo-1551958219-acbc595f6c0a?w=600&h=340&fit=crop&auto=format',
+    'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&h=340&fit=crop&auto=format',
     'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?w=600&h=340&fit=crop&auto=format',
   ]
 
@@ -51,7 +58,8 @@ export default function VenuePage({ onBack, onBook }: { onBack: () => void; onBo
       area: 'Kilimani, Nairobi',
       pitch: pitch.name,
       pitchType: pitch.type,
-      date: `${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][selectedDay]} 2${selectedDay + 0} Sep`,
+      dateKey,
+      date: day,
       time: `${selectedSlot}–${String(endH).padStart(2,'0')}:00`,
       price,
       isPeak,
@@ -62,7 +70,7 @@ export default function VenuePage({ onBack, onBook }: { onBack: () => void; onBo
     <div>
       {/* Photo gallery */}
       <div style={{ ...(desktop && { margin: '24px 16px 0', borderRadius: 20, overflow: 'hidden' }), position: 'relative', height: desktop ? 360 : 240, background: 'var(--color-confirmed-bg)', flexShrink: 0 }}>
-        <img src={IMAGES[imgIdx]} alt="Venue" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src={IMAGES[imgIdx]} alt="Venue" onError={e => { e.currentTarget.style.visibility = 'hidden' }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         {/* Back button */}
         <button onClick={onBack} style={{ position: 'absolute', top: 48, left: 16, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 18, backdropFilter: 'blur(4px)' }}>‹</button>
         {/* Dots */}
@@ -72,7 +80,7 @@ export default function VenuePage({ onBack, onBook }: { onBack: () => void; onBo
           ))}
         </div>
         {/* Favourite */}
-        <button style={{ position: 'absolute', top: 48, right: 16, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: 'none', cursor: 'pointer', fontSize: 18, backdropFilter: 'blur(4px)' }}>🤍</button>
+        <button onClick={() => toast(`Favourites: ${COMING_SOON.toLowerCase()}`)} aria-label="Add to favourites" style={{ position: 'absolute', top: 48, right: 16, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: 'none', cursor: 'pointer', fontSize: 18, backdropFilter: 'blur(4px)' }}>🤍</button>
       </div>
 
       <div style={{ padding: '16px 16px 0' }}>
@@ -122,8 +130,8 @@ export default function VenuePage({ onBack, onBook }: { onBack: () => void; onBo
           {DAYS.map((d, i) => (
             <button key={d} onClick={() => { setSelectedDay(i); setSelectedSlot(null) }}
               style={{ flexShrink: 0, minWidth: 46, padding: '6px 10px', borderRadius: 10, border: selectedDay === i ? 'none' : '1px solid var(--color-border)', cursor: 'pointer', background: selectedDay === i ? 'var(--color-primary)' : 'var(--color-bg)', color: selectedDay === i ? '#fff' : 'var(--color-muted)' }}>
-              <div style={{ fontSize: 11 }}>{d.split(' ')[0]}</div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>{d.split(' ')[1]}</div>
+              <div style={{ fontSize: 11 }}>{weekdayShort(d)}</div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>{dayOfMonth(d)}</div>
             </button>
           ))}
         </div>
@@ -138,7 +146,7 @@ export default function VenuePage({ onBack, onBook }: { onBack: () => void; onBo
           {ALL_SLOTS.map(slot => {
             const h = parseInt(slot)
             const isPeak = h >= 17 && h < 22
-            const isBooked = booked.includes(slot)
+            const isBooked = taken(slot)
             const isSelected = selectedSlot === slot
             return (
               <button key={slot} disabled={isBooked} onClick={() => setSelectedSlot(isSelected ? null : slot)}

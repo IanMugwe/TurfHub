@@ -1,19 +1,27 @@
 import { useEffect, useState } from 'react'
-import { TODAY_BOOKINGS, PENDING_REQUESTS, PAST_UNPAID, VENUE } from '../../mocks/data'
+import { NOW_HOUR, VENUE, startHour } from '../../mocks/data'
+import { useDemoStore } from '../../app/DemoStore'
+import { balanceOf, isActive, rangeOf } from '../../lib/bookings'
+import { formatDayWithYear, todayKey } from '../../lib/dates'
+import { COMING_SOON, useToast } from '../../ui/Toast'
+import { formatKES } from '@turfhub/validation'
 import { StatusPill, PayPill } from '../../ui/Pill'
 import StatCard from '../../ui/StatCard'
 import Skeleton from '../../ui/Skeleton'
 import { useIsDesktop } from '../../lib/useIsDesktop'
-import { NoShowBadge, Countdown, type RequestDecision } from '../requests/BookingRequestsScreen'
+import { NoShowBadge, Countdown } from '../requests/BookingRequestsScreen'
 import type { Booking } from '../../types'
 
 const SOURCE_ICON: Record<string, string> = { walkin: '🚶', phone: '📞', whatsapp: '💬', app: '📱' }
 
-export default function TodayScreen({ userInitials, onBookingTap, decisions, onDecide, onSeeRequests }: {
+// The venue is open 06:00–23:00 on each pitch
+const OPEN_HOURS_PER_PITCH = 17
+
+const byTime = (a: Booking, b: Booking) => a.dateKey.localeCompare(b.dateKey) || rangeOf(a)[0] - rangeOf(b)[0]
+
+export default function TodayScreen({ userInitials, onBookingTap, onSeeRequests }: {
   userInitials: string
   onBookingTap: (b: Booking) => void
-  decisions: Record<string, RequestDecision>
-  onDecide: (id: string, d: RequestDecision) => void
   onSeeRequests: () => void
 }) {
   // Simulated first load so the skeleton state is visible
@@ -24,15 +32,27 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
     return () => clearTimeout(t)
   }, [])
 
-  const visibleRequests = PENDING_REQUESTS.filter(r => !decisions[r.id])
+  const { bookings, decideRequest } = useDemoStore()
+  const toast = useToast()
+  const today = todayKey()
 
-  // Reflect accepted/rejected requests in the list
-  const upNext = TODAY_BOOKINGS
-    .filter(b => decisions[b.id] !== 'rejected')
-    .map(b => (decisions[b.id] === 'accepted' ? { ...b, status: 'confirmed' as const } : b))
-    .filter(b => b.status === 'confirmed' || b.status === 'pending')
-    .slice(0, 6)
-  const confirmed = TODAY_BOOKINGS.filter(b => b.status === 'confirmed')
+  // Everything below is calculated from the bookings, so it changes as you work
+  const todays = bookings.filter(b => b.dateKey === today)
+  const visibleRequests = bookings.filter(b => b.status === 'pending' && b.dateKey >= today).sort(byTime)
+  const pastUnpaid = todays.filter(b => b.status === 'completed' && balanceOf(b) > 0).sort(byTime)
+  const upNext = todays.filter(b => b.status === 'confirmed' || b.status === 'pending').sort(byTime).slice(0, 6)
+  const booked = todays.filter(b => b.status === 'confirmed' || b.status === 'completed')
+  const bookedHours = todays.filter(isActive).filter(b => b.status !== 'noshow').reduce((h, b) => h + (rangeOf(b)[1] - rangeOf(b)[0]) / 60, 0)
+  const openHours = VENUE.pitches.length * OPEN_HOURS_PER_PITCH
+  const collected = todays.reduce((sum, b) => sum + b.paid, 0)
+  // Owed for games that have already started
+  const owing = booked.filter(b => startHour(b) <= NOW_HOUR && balanceOf(b) > 0)
+  const owed = owing.reduce((sum, b) => sum + balanceOf(b), 0)
+
+  function decide(r: Booking, d: 'accepted' | 'rejected') {
+    decideRequest(r.ref, d)
+    toast(d === 'accepted' ? `Accepted ${r.customer} · ${r.time}` : `Rejected ${r.customer}'s request`)
+  }
 
   return (
     <div>
@@ -40,10 +60,10 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
       <div style={{ background: 'var(--color-primary)', padding: desktop ? '28px 32px 24px' : '52px 20px 20px', ...(desktop && { margin: '24px 32px 0', borderRadius: 20 }) }}>
         <div className="flex items-center justify-between mb-1">
           <div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 500, marginBottom: 2 }}>Tue 22 Sep 2026</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 500, marginBottom: 2 }}>{formatDayWithYear(today)}</div>
             <div className="flex items-center gap-2">
               <span style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>{VENUE.name}</span>
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: 20 }}>▾</span>
+              <button onClick={() => toast(`Switching venues: ${COMING_SOON.toLowerCase()}`)} aria-label="Switch venue" style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: 20, border: 'none', cursor: 'pointer' }}>▾</button>
             </div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>{VENUE.area}</div>
           </div>
@@ -56,20 +76,20 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
         {loading ? <TodaySkeleton desktop={desktop} /> : <>
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: desktop ? 'repeat(4, minmax(0, 1fr))' : '1fr 1fr', gap: desktop ? 16 : 10, marginBottom: desktop ? 28 : 20 }}>
-          <StatCard label="Bookings today" value={`${confirmed.length}`} sub={`of ${TODAY_BOOKINGS.length} total`} />
-          <StatCard label="Occupancy" value="72%" sub="21 of 29 hours" />
-          <StatCard label="Collected" value="KES 31,000" sub="today" valueColor="var(--color-primary)" />
-          <StatCard label="Unpaid" value="KES 7,500" sub="3 bookings" valueColor="var(--color-noshow)" />
+          <StatCard label="Bookings today" value={`${booked.length}`} sub={`+ ${visibleRequests.filter(r => r.dateKey === today).length} awaiting approval`} />
+          <StatCard label="Occupancy" value={`${Math.round((bookedHours / openHours) * 100)}%`} sub={`${bookedHours} of ${openHours} pitch-hours`} />
+          <StatCard label="Collected" value={formatKES(collected)} sub="today" valueColor="var(--color-primary)" />
+          <StatCard label="Unpaid" value={formatKES(owed)} sub={`${owing.length} booking${owing.length === 1 ? '' : 's'} played`} valueColor={owed > 0 ? 'var(--color-noshow)' : undefined} />
         </div>
 
         {/* Desktop: Needs attention and Up next side by side */}
         <div style={desktop ? { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 24, alignItems: 'start' } : undefined}>
         {/* Needs attention */}
-        {(visibleRequests.length > 0 || PAST_UNPAID.length > 0) && (
+        {(visibleRequests.length > 0 || pastUnpaid.length > 0) && (
           <section style={{ marginBottom: 20 }}>
             <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>Needs attention</span>
-              {PENDING_REQUESTS.length > 0 && (
+              {visibleRequests.length > 0 && (
                 <button onClick={onSeeRequests} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}>
                   All requests ›
                 </button>
@@ -84,7 +104,7 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>{r.customer}</span>
                       <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>{SOURCE_ICON[r.source]} via app</span>
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 2 }}>{r.pitch} · {r.time} · KES {r.amount.toLocaleString()}</div>
+                    <div style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 2 }}>{r.dateKey !== today && `${r.date} · `}{r.pitch} · {r.time} · {formatKES(r.amount)}</div>
                     <div className="flex items-center gap-2 flex-wrap" style={{ marginTop: 6 }}>
                       <NoShowBadge name={r.customer} />
                       <Countdown expiresIn={r.expiresIn} />
@@ -93,11 +113,11 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
                   <StatusPill status="pending" />
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => onDecide(r.id, 'accepted')}
+                  <button onClick={() => decide(r, 'accepted')}
                     style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                     Accept
                   </button>
-                  <button onClick={() => onDecide(r.id, 'rejected')}
+                  <button onClick={() => decide(r, 'rejected')}
                     style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-noshow)', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
                     Reject
                   </button>
@@ -105,15 +125,15 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
               </div>
             ))}
 
-            {PAST_UNPAID.map(b => (
+            {pastUnpaid.map(b => (
               <button key={b.id} onClick={() => onBookingTap(b)} className="w-full text-left"
                 style={{ width: '100%', background: 'var(--color-noshow-bg)', border: '1px solid var(--color-noshow-border)', borderRadius: 12, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', display: 'block' }}>
                 <div className="flex items-center justify-between">
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>{b.customer}</div>
-                    <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>{b.pitch} · {b.time} · KES {b.amount.toLocaleString()} unpaid</div>
+                    <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>{b.pitch} · {b.time} · {formatKES(balanceOf(b))} unpaid</div>
                   </div>
-                  <PayPill status="unpaid" />
+                  <PayPill status={b.payment} />
                 </div>
               </button>
             ))}
@@ -124,9 +144,9 @@ export default function TodayScreen({ userInitials, onBookingTap, decisions, onD
         <section style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)', marginBottom: 10 }}>Up next</div>
           <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 14, overflow: 'hidden' }}>
-            {upNext.map((b, i) => (
+            {upNext.map(b => (
               <button key={b.id} onClick={() => onBookingTap(b)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', borderBottom: i < upNext.length - 1 ? '1px solid var(--color-border)' : 'none', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
                 {/* Time */}
                 <div style={{ width: 56, flexShrink: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-primary)' }}>{b.time.split('–')[0]}</div>

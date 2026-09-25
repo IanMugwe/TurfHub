@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { bookingsFor } from '../../mocks/data'
+import { useDemoStore } from '../../app/DemoStore'
+import { rangeOf } from '../../lib/bookings'
 import StatCard from '../../ui/StatCard'
 import EmptyState from '../../ui/EmptyState'
 import { StatusPill, PayPill } from '../../ui/Pill'
@@ -16,7 +17,12 @@ export default function CustomerDetailScreen({ customer: c, flagged, onToggleFla
 }) {
   const desktop = useIsDesktop()
   const [notes, setNotes] = useState(c.notes ?? '')
-  const history = bookingsFor(c.name)
+  const { bookings } = useDemoStore()
+  // Most recent first
+  const history = bookings
+    .filter(b => b.customer === c.name)
+    .sort((a, b) => b.dateKey.localeCompare(a.dateKey) || rangeOf(b)[0] - rangeOf(a)[0])
+    .slice(0, 10)
   const initials = c.name.split(' ').map(w => w[0]).slice(0, 2).join('')
 
   return (

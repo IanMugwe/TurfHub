@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import BottomSheet from '../../ui/BottomSheet'
 import Toggle from '../../ui/Toggle'
-import { TODAY_BOOKINGS, VENUE } from '../../mocks/data'
+import { VENUE } from '../../mocks/data'
+import { useDemoStore } from '../../app/DemoStore'
+import { formatDay, todayKey } from '../../lib/dates'
+import { useToast } from '../../ui/Toast'
+import type { BookingSource } from '../../types'
 
 const SOURCES = [
   { id: 'walkin', label: '🚶 Walk-in' },
@@ -10,17 +14,18 @@ const SOURCES = [
 ]
 const DURATIONS = ['1h', '1.5h', '2h']
 
-function toMinutes(t: string) {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
-}
-
-export default function NewBookingSheet({ onClose, initialCustomer, initialPitch, initialTime }: {
+export default function NewBookingSheet({ onClose, initialCustomer, initialPitch, initialTime, initialDate }: {
   onClose: () => void
   initialCustomer?: { name: string; phone: string }
   initialPitch?: string
   initialTime?: string
+  /** "YYYY-MM-DD"; defaults to today */
+  initialDate?: string
 }) {
+  const { addBooking, clashesFor } = useDemoStore()
+  const toast = useToast()
+  const today = todayKey()
+  const dateKey = initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate) ? initialDate : today
   const [pitch, setPitch] = useState(VENUE.pitches.some(p => p.id === initialPitch) ? initialPitch! : VENUE.pitches[0].id)
   const [time, setTime] = useState(initialTime ?? '14:00')
   const [duration, setDuration] = useState('1h')
@@ -37,19 +42,24 @@ export default function NewBookingSheet({ onClose, initialCustomer, initialPitch
   const multiplier = duration === '1h' ? 1 : duration === '1.5h' ? 1.5 : 2
   const total = Math.round(price * multiplier)
 
-  // Overlap check against today's bookings on the same pitch
-  const start = toMinutes(time)
-  const end = start + multiplier * 60
-  const clash = TODAY_BOOKINGS.find(b => {
-    if (b.pitch !== selectedPitch.name || b.status === 'cancelled') return false
-    const [bs, be] = b.time.split('–').map(toMinutes)
-    return start < be && bs < end
-  })
+  // Overlap check against real bookings on the same pitch, including repeat weeks
+  const input = { pitchId: pitch, dateKey, start: time, hours: multiplier, customer, phone, source: source as BookingSource, weeks: repeat ? weeks : 1 }
+  const validTime = /^\d{2}:\d{2}$/.test(time)
+  const { first: clash, repeatDates } = validTime ? clashesFor(input) : { first: undefined, repeatDates: [] }
+  const canSave = validTime && !clash && customer.trim().length > 0
+
+  function save() {
+    const { created } = addBooking(input)
+    toast(`Booked ${customer.trim()} · ${selectedPitch.name} ${time}${created.length > 1 ? ` · ${created.length} weeks` : ''}`)
+    onClose()
+  }
 
   return (
     <BottomSheet onClose={onClose} label="New booking">
         <div style={{ padding: '16px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>New booking</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>
+            New booking{dateKey !== today && <span style={{ fontWeight: 500, color: 'var(--color-muted)' }}> · {formatDay(dateKey)}</span>}
+          </div>
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'var(--color-bg)', cursor: 'pointer', fontSize: 18, color: 'var(--color-muted)' }}>×</button>
         </div>
 
@@ -122,9 +132,15 @@ export default function NewBookingSheet({ onClose, initialCustomer, initialPitch
                   <span style={{ fontSize: 14, color: 'var(--color-muted)' }}>weeks</span>
                 </div>
               </div>
-              <div style={{ fontSize: 13, color: 'var(--color-pending)', background: 'var(--color-pending-bg)', padding: '6px 10px', borderRadius: 8 }}>
-                ⚠ 2 dates clash and will be skipped: 6 Oct, 20 Oct
-              </div>
+              {repeatDates.length > 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--color-pending)', background: 'var(--color-pending-bg)', padding: '6px 10px', borderRadius: 8 }}>
+                  ⚠ {repeatDates.length} date{repeatDates.length > 1 ? 's' : ''} clash and will be skipped: {repeatDates.map(formatDay).join(', ')}
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: 'var(--color-confirmed)', background: 'var(--color-confirmed-bg)', padding: '6px 10px', borderRadius: 8 }}>
+                  ✓ No clashes in the next {weeks} weeks
+                </div>
+              )}
             </div>
           )}
 
@@ -143,8 +159,8 @@ export default function NewBookingSheet({ onClose, initialCustomer, initialPitch
             </div>
           )}
 
-          <button onClick={onClose} disabled={!!clash}
-            style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: clash ? 'var(--color-border)' : 'var(--color-primary)', color: clash ? 'var(--color-muted-light)' : '#fff', fontSize: 16, fontWeight: 700, cursor: clash ? 'not-allowed' : 'pointer' }}>
+          <button onClick={save} disabled={!canSave}
+            style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: !canSave ? 'var(--color-border)' : 'var(--color-primary)', color: !canSave ? 'var(--color-muted-light)' : '#fff', fontSize: 16, fontWeight: 700, cursor: !canSave ? 'not-allowed' : 'pointer' }}>
             Save booking
           </button>
         </div>

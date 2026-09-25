@@ -1,5 +1,5 @@
 // Route-level components: read the URL and app state, then render a feature screen
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router'
 import SiteShell from './SiteShell'
 import { useStaff } from './StaffLayout'
@@ -20,9 +20,12 @@ import ConfirmationScreen from '../features/player/ConfirmationScreen'
 import MyBookingsScreen from '../features/player/MyBookingsScreen'
 import ProfileScreen from '../features/player/ProfileScreen'
 import type { SlotSelection } from '../features/player/types'
-import { VENUE, customerByPhoneParam, initials } from '../mocks/data'
+import { VENUE, initials } from '../mocks/data'
+import { useCustomerByPhoneParam } from './useCustomers'
 import { phoneToParam } from '@turfhub/validation'
 import { useIsDesktop } from '../lib/useIsDesktop'
+import { useDemoStore } from './DemoStore'
+import { useToast } from '../ui/Toast'
 import type { Session } from '../types'
 
 /** Where a signed-in person lands */
@@ -46,6 +49,17 @@ export function Login() {
   return <DesktopSignIn>{screen}</DesktopSignIn>
 }
 
+/** /reset-demo: restore the demo data to its starting point (for presenters) */
+export function ResetDemo() {
+  const { reset } = useDemoStore()
+  const toast = useToast()
+  useEffect(() => {
+    reset()
+    toast('Demo data reset')
+  }, [reset, toast])
+  return <Navigate to="/" replace />
+}
+
 function useSignOut() {
   const { signOut } = useAppState()
   const navigate = useNavigate()
@@ -55,20 +69,20 @@ function useSignOut() {
 // ── Staff ──
 
 export function Today() {
-  const { session, venueId, decisions, decide, openBooking } = useStaff()
+  const { session, venueId, openBooking } = useStaff()
   const navigate = useNavigate()
-  return <TodayScreen userInitials={initials(session.name)} onBookingTap={openBooking} decisions={decisions} onDecide={decide} onSeeRequests={() => navigate(`/v/${venueId}/requests`)} />
+  return <TodayScreen userInitials={initials(session.name)} onBookingTap={openBooking} onSeeRequests={() => navigate(`/v/${venueId}/requests`)} />
 }
 
 export function Calendar() {
   const { openBooking, openNewBooking } = useStaff()
-  return <CalendarScreen onBookingTap={openBooking} onNewBooking={(pitch, hour) => openNewBooking({ pitch, hour })} />
+  return <CalendarScreen onBookingTap={openBooking} onNewBooking={(pitch, hour, date) => openNewBooking({ pitch, hour, date })} />
 }
 
 export function Requests() {
-  const { venueId, decisions, decide, openBooking } = useStaff()
+  const { venueId, openBooking } = useStaff()
   const navigate = useNavigate()
-  return <BookingRequestsScreen decisions={decisions} onDecide={decide} onBack={() => navigate(`/v/${venueId}/today`)} onBookingTap={openBooking} />
+  return <BookingRequestsScreen onBack={() => navigate(`/v/${venueId}/today`)} onBookingTap={openBooking} />
 }
 
 export function Customers() {
@@ -81,7 +95,7 @@ export function CustomerDetail() {
   const { venueId, flagged, toggleFlag, openBooking, openNewBooking } = useStaff()
   const { phone = '' } = useParams()
   const navigate = useNavigate()
-  const customer = customerByPhoneParam(phone)
+  const customer = useCustomerByPhoneParam(phone)
   if (!customer) return <NotFound />
   return (
     <CustomerDetailScreen
@@ -125,16 +139,21 @@ export function Venue() {
 
 export function Review() {
   const navigate = useNavigate()
+  const { session } = useAppState()
+  const { addPlayerBooking } = useDemoStore()
   const slot = (useLocation().state as { slot?: SlotSelection } | null)?.slot
   // The chosen slot only lives in navigation state; start again if it's gone (e.g. after a refresh)
   if (!slot) return <Navigate to={`/venues/${VENUE.slug}`} replace />
   return (
     <ReviewBooking
       slot={slot}
+      initialName={session?.name === 'New player' ? '' : session?.name}
+      initialPhone={session?.phone}
       onBack={() => navigate(`/venues/${VENUE.slug}`)}
-      onConfirm={status => {
-        const ref = 'TRF-' + Math.random().toString(36).toUpperCase().slice(2, 6)
-        navigate(`/book/${ref}`, { replace: true, state: { slot, status } })
+      onConfirm={details => {
+        // Saved to the demo store: shows in My Bookings and, if the venue approves requests, on the owner's Today
+        const booking = addPlayerBooking(slot, details)
+        navigate(`/book/${booking.ref}`, { replace: true, state: { slot, status: booking.status } })
       }}
     />
   )

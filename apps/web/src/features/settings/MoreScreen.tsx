@@ -1,5 +1,7 @@
 import type { StaffRole } from '../../types'
 import Toggle from '../../ui/Toggle'
+import { useDemoStore } from '../../app/DemoStore'
+import { COMING_SOON, useToast } from '../../ui/Toast'
 import { STAFF_ACCOUNTS, VENUE } from '../../mocks/data'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 
@@ -10,10 +12,10 @@ interface SettingsItem {
   toggle?: boolean
   on?: boolean
   danger?: boolean
-  action?: 'theme' | 'signout'
+  action?: 'theme' | 'signout' | 'autoconfirm'
 }
 
-function sectionsFor(user: { name: string; staffRole: StaffRole }) {
+function sectionsFor(user: { name: string; staffRole: StaffRole }, autoConfirm: boolean) {
   const isOwner = user.staffRole === 'owner'
   const sections: { title: string; items: SettingsItem[] }[] = [
     {
@@ -29,7 +31,7 @@ function sectionsFor(user: { name: string; staffRole: StaffRole }) {
     {
       title: 'Booking settings',
       items: [
-        { icon: '✅', label: 'Auto-confirm app bookings', sub: 'Off — approve each request', toggle: true, on: false },
+        { icon: '✅', label: 'Auto-confirm app bookings', sub: autoConfirm ? 'On: app bookings are confirmed instantly' : 'Off: approve each request', toggle: true, action: 'autoconfirm' },
         { icon: '⏱', label: 'Free cancellation window', sub: '2 hours before start' },
       ],
     },
@@ -55,6 +57,18 @@ function sectionsFor(user: { name: string; staffRole: StaffRole }) {
 const ROLE_LABEL: Record<StaffRole, string> = { owner: 'Owner', manager: 'Manager' }
 
 export default function MoreScreen({ user, theme, onToggleTheme, onSignOut }: { user: { name: string; staffRole: StaffRole }; theme: 'light' | 'dark'; onToggleTheme: () => void; onSignOut: () => void }) {
+  const { autoConfirm, setAutoConfirm } = useDemoStore()
+  const toast = useToast()
+
+  function handle(item: SettingsItem) {
+    if (item.action === 'theme') return onToggleTheme()
+    if (item.action === 'signout') return onSignOut()
+    if (item.action === 'autoconfirm') {
+      setAutoConfirm(!autoConfirm)
+      return toast(autoConfirm ? 'App bookings now need your approval' : 'App bookings are now confirmed instantly')
+    }
+    toast(`${item.label}: ${COMING_SOON.toLowerCase()}`)
+  }
   const desktop = useIsDesktop()
   return (
     <div>
@@ -62,23 +76,17 @@ export default function MoreScreen({ user, theme, onToggleTheme, onSignOut }: { 
         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)' }}>More</div>
       </div>
 
-      {/* Pending approval banner */}
-      <div style={{ margin: desktop ? '20px 32px 0' : '12px 16px 0', background: 'var(--color-pending-bg)', border: '1px solid var(--color-pending-border)', borderRadius: 12, padding: '12px 14px' }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-pending-strong)' }}>Pending approval</div>
-        <div style={{ fontSize: 13, color: 'var(--color-pending-strong)', marginTop: 2 }}>Customers can't see your venue yet. Our team will review within 24 hours.</div>
-      </div>
-
       <div style={desktop ? { padding: '20px 32px 40px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', columnGap: 24, alignItems: 'start' } : { padding: '12px 16px 40px' }}>
-        {sectionsFor(user).map(section => (
+        {sectionsFor(user, autoConfirm).map(section => (
           <div key={section.title} style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, paddingLeft: 4 }}>{section.title}</div>
             <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 14, overflow: 'hidden' }}>
-              {section.items.map((item, i) => {
+              {section.items.map(item => {
                 const action = item.action
-                const on = action === 'theme' ? theme === 'dark' : !!item.on
+                const on = action === 'theme' ? theme === 'dark' : action === 'autoconfirm' ? autoConfirm : !!item.on
                 return (
-                <button key={item.label} onClick={action === 'theme' ? onToggleTheme : action === 'signout' ? onSignOut : undefined}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderBottom: i < section.items.length - 1 ? '1px solid var(--color-border)' : 'none', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                <button key={item.label} onClick={() => handle(item)}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
                   <span style={{ fontSize: 20 }}>{item.icon}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: item.danger ? 'var(--color-noshow)' : 'var(--color-text)' }}>{item.label}</div>

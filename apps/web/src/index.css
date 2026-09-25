@@ -94,14 +94,17 @@
   --color-skeleton: #222B27;
 }
 
-/* Phone frame: a 390 px device on wide screens, edge to edge on real phones */
+/* Phone frame: a 390 px device on wide screens, edge to edge on real phones.
+   It is exactly one screen tall, so content scrolls inside it and the tab bar and
+   + button stay pinned to the bottom of the screen. */
 :root {
   --frame-width: 390px;
 }
 
 .phone-frame {
   width: var(--frame-width);
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.18);
 }
 
@@ -111,8 +114,14 @@
   }
 
   .phone-frame {
-    min-height: 100dvh;
     box-shadow: none;
+  }
+}
+
+/* Website header: on narrower laptops show only the avatar, never wrap */
+@media (max-width: 1199px) {
+  .topnav-name {
+    display: none;
   }
 }
 

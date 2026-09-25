@@ -10,6 +10,9 @@ export type OtpMode = 'demo' | 'skip'
 
 export const OTP_MODE: OtpMode = import.meta.env.VITE_OTP_MODE === 'skip' ? 'skip' : 'demo'
 
+/** Show the demo phone numbers and code on the sign-in screen (off by default, so demos look like the real product) */
+export const SHOW_DEMO_HINTS: boolean = import.meta.env.VITE_DEMO_HINTS === 'true'
+
 export const DEMO_OTP_CODE: string = /^\d{6}$/.test(import.meta.env.VITE_DEMO_OTP_CODE ?? '')
   ? import.meta.env.VITE_DEMO_OTP_CODE!
   : '123456'
