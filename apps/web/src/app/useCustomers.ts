@@ -1,13 +1,15 @@
 import { phoneToParam } from '@turfhub/validation'
-import { CUSTOMERS } from '../mocks/data'
+import { CUSTOMERS, GREENFIELD_ID } from '../mocks/data'
 import { balanceOf } from '../lib/bookings'
 import type { Customer } from '../types'
 import { useDemoStore } from './DemoStore'
 
-/** Known customers plus anyone booked during the demo (walk-ins, new players) */
-export function useCustomers(): Customer[] {
-  const { bookings } = useDemoStore()
-  const known = new Set(CUSTOMERS.map(c => c.name))
+/** A venue's customers: Greenfield's regulars plus anyone booked at the venue during the demo */
+export function useCustomers(venueId = GREENFIELD_ID): Customer[] {
+  const { bookings: all } = useDemoStore()
+  const bookings = all.filter(b => b.venueId === venueId)
+  const regulars = venueId === GREENFIELD_ID ? CUSTOMERS : []
+  const known = new Set(regulars.map(c => c.name))
   const added = new Map<string, Customer>()
   for (const b of [...bookings].sort((a, z) => a.dateKey.localeCompare(z.dateKey))) {
     if (known.has(b.customer) || !b.customer) continue
@@ -20,9 +22,9 @@ export function useCustomers(): Customer[] {
     added.set(b.customer, c)
   }
   // Newest customers first, so a walk-in you just added is easy to find
-  return [...[...added.values()].reverse(), ...CUSTOMERS]
+  return [...[...added.values()].reverse(), ...regulars]
 }
 
-export function useCustomerByPhoneParam(param: string) {
-  return useCustomers().find(c => phoneToParam(c.phone) === param)
+export function useCustomerByPhoneParam(param: string, venueId?: string) {
+  return useCustomers(venueId).find(c => phoneToParam(c.phone) === param)
 }

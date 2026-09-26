@@ -6,7 +6,8 @@ import { NOW_HOUR, startHour } from '../../mocks/data'
 import { useDemoStore } from '../../app/DemoStore'
 import { balanceOf } from '../../lib/bookings'
 import { todayKey } from '../../lib/dates'
-import { COMING_SOON, useToast } from '../../ui/Toast'
+import { useToast } from '../../ui/Toast'
+import { MoveView, ExtendView } from './MoveExtend'
 import { formatKES } from '@turfhub/validation'
 
 const METHOD_LABEL: Record<PaymentMethod, string> = { cash: '💵 Cash', mpesa: '📱 M-Pesa', other: '🏦 Other' }
@@ -19,6 +20,7 @@ export default function BookingDetailSheet({ booking: b, onClose }: { booking: B
   const [method, setMethod] = useState<PaymentMethod>('cash')
   const [mpesaCode, setMpesaCode] = useState('')
   const [scope, setScope] = useState<'one' | 'following'>('one')
+  const [mode, setMode] = useState<'detail' | 'move' | 'extend'>('detail')
 
   const { recordPayment, waiveBalance, cancelBooking, markNoShow } = useDemoStore()
   const toast = useToast()
@@ -37,6 +39,10 @@ export default function BookingDetailSheet({ booking: b, onClose }: { booking: B
 
   return (
     <BottomSheet onClose={onClose} maxHeight="92vh" label={`Booking ${b.ref}`}>
+      {mode === 'move' ? <MoveView booking={b} scope={scope} onDone={() => setMode('detail')} />
+        : mode === 'extend' ? <ExtendView booking={b} onDone={() => setMode('detail')} />
+        : (
+      <>
         <div style={{ padding: '12px 20px 0' }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -167,8 +173,8 @@ export default function BookingDetailSheet({ booking: b, onClose }: { booking: B
           {isOpen && (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {['Move', 'Extend'].map(action => (
-                  <button key={action} onClick={() => toast(`${action}: ${COMING_SOON.toLowerCase()}`)}
+                {(['Move', 'Extend'] as const).map(action => (
+                  <button key={action} onClick={() => setMode(action === 'Move' ? 'move' : 'extend')}
                     style={{ padding: '11px', minHeight: 44, borderRadius: 10, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>{action}</button>
                 ))}
                 <button onClick={() => { cancelBooking(b.ref); toast(`Cancelled ${b.customer} · ${b.time}`); onClose() }}
@@ -184,6 +190,8 @@ export default function BookingDetailSheet({ booking: b, onClose }: { booking: B
             </>
           )}
         </div>
+      </>
+      )}
     </BottomSheet>
   )
 }

@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import Toggle from '../../ui/Toggle'
-import { useToast } from '../../ui/Toast'
+import { useDemoStore } from '../../app/DemoStore'
+import { priceFrom } from '../../lib/venue'
+import { formatKES } from '@turfhub/validation'
 import { customerByName, initials } from '../../mocks/data'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 
-export default function ProfileScreen({ name, phone, onSignOut }: { name: string; phone: string; onSignOut: () => void }) {
-  const toast = useToast()
+export default function ProfileScreen({ name, phone, onSignOut, onOpenVenue }: { name: string; phone: string; onSignOut: () => void; onOpenVenue: (slug: string) => void }) {
+  const { favourites, venues } = useDemoStore()
+  const favouriteVenues = (favourites[phone] ?? []).map(id => venues.find(v => v.id === id && v.status === 'approved')).filter(v => v !== undefined)
   const desktop = useIsDesktop()
   const stats = customerByName(name)
   const [smsReminders, setSmsReminders] = useState(true)
@@ -74,11 +77,19 @@ export default function ProfileScreen({ name, phone, onSignOut }: { name: string
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Favourites</div>
           <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 14 }}>
-            <button onClick={() => toast('Favourites: coming soon')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}>
-              <span style={{ fontSize: 20 }}>❤️</span>
-              <span style={{ fontSize: 15, color: 'var(--color-text)' }}>Greenfield Arena</span>
-              <span style={{ marginLeft: 'auto', color: 'var(--color-muted-light)', fontSize: 18 }}>›</span>
-            </button>
+            {favouriteVenues.length === 0 && (
+              <div style={{ padding: '14px 16px', fontSize: 14, color: 'var(--color-muted)' }}>Tap 🤍 on a venue to save it here.</div>
+            )}
+            {favouriteVenues.map((v, i) => (
+              <button key={v.id} onClick={() => onOpenVenue(v.slug)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: 'none', borderTop: i > 0 ? '1px solid var(--color-border)' : 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                <span style={{ fontSize: 20 }}>❤️</span>
+                <span style={{ flex: 1 }}>
+                  <span style={{ display: 'block', fontSize: 15, color: 'var(--color-text)' }}>{v.name}</span>
+                  <span style={{ display: 'block', fontSize: 13, color: 'var(--color-muted)' }}>{v.area.split(',')[0]} · from {formatKES(priceFrom(v))}/hr</span>
+                </span>
+                <span style={{ color: 'var(--color-muted-light)', fontSize: 18 }}>›</span>
+              </button>
+            ))}
           </div>
         </div>
 

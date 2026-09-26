@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import BottomSheet from '../../ui/BottomSheet'
 import Toggle from '../../ui/Toggle'
-import { VENUE } from '../../mocks/data'
+import { useStaff } from '../../app/StaffLayout'
+import { activePitches, hourlyRate, isPeak as isPeakHour } from '../../lib/venue'
 import { useDemoStore } from '../../app/DemoStore'
 import { formatDay, todayKey } from '../../lib/dates'
 import { useToast } from '../../ui/Toast'
@@ -26,7 +27,9 @@ export default function NewBookingSheet({ onClose, initialCustomer, initialPitch
   const toast = useToast()
   const today = todayKey()
   const dateKey = initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate) ? initialDate : today
-  const [pitch, setPitch] = useState(VENUE.pitches.some(p => p.id === initialPitch) ? initialPitch! : VENUE.pitches[0].id)
+  const { venue } = useStaff()
+  const pitches = activePitches(venue)
+  const [pitch, setPitch] = useState(pitches.some(p => p.id === initialPitch) ? initialPitch! : pitches[0]?.id ?? '')
   const [time, setTime] = useState(initialTime ?? '14:00')
   const [duration, setDuration] = useState('1h')
   const [customer, setCustomer] = useState(initialCustomer?.name ?? '')
@@ -35,17 +38,17 @@ export default function NewBookingSheet({ onClose, initialCustomer, initialPitch
   const [repeat, setRepeat] = useState(false)
   const [weeks, setWeeks] = useState(8)
 
-  const selectedPitch = VENUE.pitches.find(p => p.id === pitch)!
+  const selectedPitch = pitches.find(p => p.id === pitch) ?? pitches[0]
   const startH = parseInt(time.split(':')[0])
-  const isPeak = startH >= 17 && startH < 22
-  const price = isPeak ? selectedPitch.pricePeak : selectedPitch.priceOffPeak
+  const isPeak = isPeakHour(venue, dateKey, startH)
+  const price = hourlyRate(venue, selectedPitch, dateKey, startH)
   const multiplier = duration === '1h' ? 1 : duration === '1.5h' ? 1.5 : 2
   const total = Math.round(price * multiplier)
 
   // Overlap check against real bookings on the same pitch, including repeat weeks
-  const input = { pitchId: pitch, dateKey, start: time, hours: multiplier, customer, phone, source: source as BookingSource, weeks: repeat ? weeks : 1 }
+  const input = { venueId: venue.id, pitchId: pitch, dateKey, start: time, hours: multiplier, customer, phone, source: source as BookingSource, weeks: repeat ? weeks : 1 }
   const validTime = /^\d{2}:\d{2}$/.test(time)
-  const { first: clash, repeatDates } = validTime ? clashesFor(input) : { first: undefined, repeatDates: [] }
+  const { first: clash, repeatDates } = validTime ? clashesFor(input) : { first: null, repeatDates: [] }
   const canSave = validTime && !clash && customer.trim().length > 0
 
   function save() {
@@ -67,7 +70,7 @@ export default function NewBookingSheet({ onClose, initialCustomer, initialPitch
           {/* Pitch */}
           <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--color-muted)', marginBottom: 6 }}>Pitch</label>
           <div className="flex gap-2 mb-4">
-            {VENUE.pitches.map(p => (
+            {pitches.map(p => (
               <button key={p.id} onClick={() => setPitch(p.id)}
                 style={{ flex: 1, padding: '9px 6px', borderRadius: 10, border: pitch === p.id ? 'none' : '1px solid var(--color-border)', background: pitch === p.id ? 'var(--color-primary)' : 'var(--color-bg)', color: pitch === p.id ? '#fff' : 'var(--color-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 <div>{p.name}</div>
@@ -154,8 +157,8 @@ export default function NewBookingSheet({ onClose, initialCustomer, initialPitch
 
           {clash && (
             <div style={{ background: 'var(--color-noshow-bg)', border: '1px solid var(--color-noshow-border)', borderRadius: 12, padding: '10px 14px', marginBottom: 12 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-noshow)' }}>That slot was just taken — pick another time</div>
-              <div style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 2 }}>{selectedPitch.name} is booked {clash.time} by {clash.customer}.</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-noshow)' }}>{clash.kind === 'booking' ? 'That slot was just taken — pick another time' : clash.kind === 'blocked' ? 'That time is blocked' : 'Outside opening hours'}</div>
+              <div style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 2 }}>{clash.message}.</div>
             </div>
           )}
 

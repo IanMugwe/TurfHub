@@ -1,26 +1,26 @@
 import { useEffect, useState } from 'react'
-import { NOW_HOUR, VENUE, startHour } from '../../mocks/data'
+import { NOW_HOUR, startHour } from '../../mocks/data'
+import { activePitches, hoursFor } from '../../lib/venue'
 import { useDemoStore } from '../../app/DemoStore'
 import { balanceOf, isActive, rangeOf } from '../../lib/bookings'
 import { formatDayWithYear, todayKey } from '../../lib/dates'
-import { COMING_SOON, useToast } from '../../ui/Toast'
+import { useToast } from '../../ui/Toast'
 import { formatKES } from '@turfhub/validation'
 import { StatusPill, PayPill } from '../../ui/Pill'
 import StatCard from '../../ui/StatCard'
 import Skeleton from '../../ui/Skeleton'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 import { NoShowBadge, Countdown } from '../requests/BookingRequestsScreen'
-import type { Booking } from '../../types'
+import type { Booking, Venue } from '../../types'
 
 const SOURCE_ICON: Record<string, string> = { walkin: '🚶', phone: '📞', whatsapp: '💬', app: '📱' }
 
-// The venue is open 06:00–23:00 on each pitch
-const OPEN_HOURS_PER_PITCH = 17
-
 const byTime = (a: Booking, b: Booking) => a.dateKey.localeCompare(b.dateKey) || rangeOf(a)[0] - rangeOf(b)[0]
 
-export default function TodayScreen({ userInitials, onBookingTap, onSeeRequests }: {
+export default function TodayScreen({ venue, userInitials, onBookingTap, onSeeRequests, onSwitchVenue }: {
+  venue: Venue
   userInitials: string
+  onSwitchVenue: () => void
   onBookingTap: (b: Booking) => void
   onSeeRequests: () => void
 }) {
@@ -32,7 +32,8 @@ export default function TodayScreen({ userInitials, onBookingTap, onSeeRequests 
     return () => clearTimeout(t)
   }, [])
 
-  const { bookings, decideRequest } = useDemoStore()
+  const { bookings: allBookings, decideRequest } = useDemoStore()
+  const bookings = allBookings.filter(b => b.venueId === venue.id)
   const toast = useToast()
   const today = todayKey()
 
@@ -43,7 +44,8 @@ export default function TodayScreen({ userInitials, onBookingTap, onSeeRequests 
   const upNext = todays.filter(b => b.status === 'confirmed' || b.status === 'pending').sort(byTime).slice(0, 6)
   const booked = todays.filter(b => b.status === 'confirmed' || b.status === 'completed')
   const bookedHours = todays.filter(isActive).filter(b => b.status !== 'noshow').reduce((h, b) => h + (rangeOf(b)[1] - rangeOf(b)[0]) / 60, 0)
-  const openHours = VENUE.pitches.length * OPEN_HOURS_PER_PITCH
+  const todayHours = hoursFor(venue, today)
+  const openHours = todayHours.closed ? 0 : activePitches(venue).length * (todayHours.close - todayHours.open)
   const collected = todays.reduce((sum, b) => sum + b.paid, 0)
   // Owed for games that have already started
   const owing = booked.filter(b => startHour(b) <= NOW_HOUR && balanceOf(b) > 0)
@@ -62,10 +64,10 @@ export default function TodayScreen({ userInitials, onBookingTap, onSeeRequests 
           <div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 500, marginBottom: 2 }}>{formatDayWithYear(today)}</div>
             <div className="flex items-center gap-2">
-              <span style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>{VENUE.name}</span>
-              <button onClick={() => toast(`Switching venues: ${COMING_SOON.toLowerCase()}`)} aria-label="Switch venue" style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: 20, border: 'none', cursor: 'pointer' }}>▾</button>
+              <span style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>{venue.name}</span>
+              <button onClick={onSwitchVenue} aria-label="Switch venue" style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: 20, border: 'none', cursor: 'pointer' }}>▾</button>
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>{VENUE.area}</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>{venue.area}</div>
           </div>
           {/* On desktop the account avatar lives in the top navigation */}
           {!desktop && <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--color-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, color: 'var(--color-primary-dark)', flexShrink: 0 }}>{userInitials}</div>}
@@ -77,7 +79,7 @@ export default function TodayScreen({ userInitials, onBookingTap, onSeeRequests 
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: desktop ? 'repeat(4, minmax(0, 1fr))' : '1fr 1fr', gap: desktop ? 16 : 10, marginBottom: desktop ? 28 : 20 }}>
           <StatCard label="Bookings today" value={`${booked.length}`} sub={`+ ${visibleRequests.filter(r => r.dateKey === today).length} awaiting approval`} />
-          <StatCard label="Occupancy" value={`${Math.round((bookedHours / openHours) * 100)}%`} sub={`${bookedHours} of ${openHours} pitch-hours`} />
+          <StatCard label="Occupancy" value={openHours ? `${Math.round((bookedHours / openHours) * 100)}%` : '—'} sub={`${bookedHours} of ${openHours} pitch-hours`} />
           <StatCard label="Collected" value={formatKES(collected)} sub="today" valueColor="var(--color-primary)" />
           <StatCard label="Unpaid" value={formatKES(owed)} sub={`${owing.length} booking${owing.length === 1 ? '' : 's'} played`} valueColor={owed > 0 ? 'var(--color-noshow)' : undefined} />
         </div>

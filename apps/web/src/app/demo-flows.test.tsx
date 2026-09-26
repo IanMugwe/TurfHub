@@ -66,7 +66,7 @@ describe('demo data flows', () => {
 
   it('does not let players book hours that have already passed today', async () => {
     renderAt('/venues/greenfield-arena', PLAYER)
-    expect(await screen.findByRole('button', { name: '09:00' })).toBeDisabled()
+    expect(await screen.findByRole('button', { name: /^09:00/ })).toBeDisabled()
   })
 })
 

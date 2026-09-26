@@ -1,7 +1,9 @@
 import type { SlotSelection } from './types'
+import type { Venue } from '../../types'
 
-export default function ConfirmationScreen({ bookingRef: ref, slot, status, onDone, onMyBookings }: {
+export default function ConfirmationScreen({ bookingRef: ref, slot, status, venue, onDone, onMyBookings }: {
   bookingRef: string
+  venue?: Venue
   slot: SlotSelection
   status: 'confirmed' | 'pending'
   onDone: () => void
@@ -61,7 +63,7 @@ export default function ConfirmationScreen({ bookingRef: ref, slot, status, onDo
       {/* Action buttons */}
       {isConfirmed && (
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <a href="https://maps.google.com" style={{ padding: '13px', borderRadius: 12, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 15, fontWeight: 600, textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+          <a href={venue ? `https://www.google.com/maps/dir/?api=1&destination=${venue.lat},${venue.lng}` : 'https://maps.google.com'} target="_blank" rel="noreferrer" style={{ padding: '13px', borderRadius: 12, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 15, fontWeight: 600, textDecoration: 'none', display: 'block', textAlign: 'center' }}>
             🗺 Get directions
           </a>
           <button onClick={onMyBookings}

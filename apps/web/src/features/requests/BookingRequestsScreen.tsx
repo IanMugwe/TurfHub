@@ -25,7 +25,8 @@ export function Countdown({ expiresIn }: { expiresIn?: string }) {
   return <span style={{ fontSize: 12, color: 'var(--color-pending)', fontWeight: 500 }}>⏱ auto-declines in {expiresIn}</span>
 }
 
-export default function BookingRequestsScreen({ onBack, onBookingTap }: {
+export default function BookingRequestsScreen({ venueId, onBack, onBookingTap }: {
+  venueId: string
   onBack: () => void
   onBookingTap: (b: Booking) => void
 }) {
@@ -34,7 +35,7 @@ export default function BookingRequestsScreen({ onBack, onBookingTap }: {
   const toast = useToast()
   const today = todayKey()
   const open = bookings
-    .filter(b => b.status === 'pending' && b.dateKey >= today)
+    .filter(b => b.venueId === venueId && b.status === 'pending' && b.dateKey >= today)
     .sort((a, b) => a.dateKey.localeCompare(b.dateKey) || rangeOf(a)[0] - rangeOf(b)[0])
 
   function decide(r: Booking, d: RequestDecision) {

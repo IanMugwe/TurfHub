@@ -5,7 +5,8 @@ import ResponsiveGrid from '../../ui/ResponsiveGrid'
 import { useDemoStore } from '../../app/DemoStore'
 import { NOW_HOUR, startHour } from '../../mocks/data'
 import { todayKey } from '../../lib/dates'
-import { COMING_SOON, useToast } from '../../ui/Toast'
+import { useToast } from '../../ui/Toast'
+import ReviewSheet from './ReviewSheet'
 import type { PlayerBooking } from '../../types'
 
 const byDate = (a: PlayerBooking, b: PlayerBooking) => a.dateKey.localeCompare(b.dateKey) || a.time.localeCompare(b.time)
@@ -19,10 +20,14 @@ const STATUS_COLOR: Record<string, { color: string; bg: string }> = {
 }
 const STATUS_LABEL: Record<PlayerBooking['status'], string> = { confirmed: 'Completed', pending: 'Pending', completed: 'Completed', noshow: 'No-show', cancelled: 'Cancelled' }
 
-export default function MyBookingsScreen({ onBack }: { onBack: () => void }) {
+export default function MyBookingsScreen({ onBack, onOpenVenue }: { onBack: () => void; onOpenVenue: (slug: string) => void }) {
   const desktop = useIsDesktop()
   const [tab, setTab] = useState<'upcoming' | 'past' | 'cancelled'>('upcoming')
-  const { playerBookings, cancelPlayerBooking } = useDemoStore()
+  const { playerBookings, cancelPlayerBooking, venues, reviews } = useDemoStore()
+  const [reviewing, setReviewing] = useState<PlayerBooking | null>(null)
+  const reviewed = (ref: string) => reviews.find(r => r.bookingRef === ref)
+  const slugOf = (b: PlayerBooking) => venues.find(v => v.id === b.venueId && v.status === 'approved')?.slug
+  const venueOf = (b: PlayerBooking) => venues.find(v => v.id === b.venueId)
   const toast = useToast()
   const today = todayKey()
 
@@ -82,7 +87,7 @@ export default function MyBookingsScreen({ onBack }: { onBack: () => void }) {
                 </div>
               </div>
               <div className="flex gap-2">
-                <a href="https://maps.google.com" style={{ flex: 1, padding: '9px', borderRadius: 8, background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: 13, fontWeight: 500, textDecoration: 'none', textAlign: 'center', display: 'block' }}>🗺 Directions</a>
+                <a href={venueOf(b) ? `https://www.google.com/maps/dir/?api=1&destination=${venueOf(b)!.lat},${venueOf(b)!.lng}` : 'https://maps.google.com'} target="_blank" rel="noreferrer" style={{ flex: 1, padding: '9px', borderRadius: 8, background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: 13, fontWeight: 500, textDecoration: 'none', textAlign: 'center', display: 'block' }}>🗺 Directions</a>
                 {b.canCancel ? (
                   <button onClick={() => cancel(b)} style={{ flex: 1, padding: '9px', borderRadius: 8, background: 'transparent', border: '1px solid var(--color-noshow-border)', color: 'var(--color-noshow)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
                 ) : (
@@ -112,14 +117,26 @@ export default function MyBookingsScreen({ onBack }: { onBack: () => void }) {
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>KES {b.price.toLocaleString()}</div>
             </div>
             {b.status === 'completed' && (
-              <button onClick={() => toast(`Reviews: ${COMING_SOON.toLowerCase()}`)} style={{ marginTop: 8, padding: '7px 14px', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 13, cursor: 'pointer' }}>
-                ★ Leave a review
-              </button>
+              <div className="flex gap-2" style={{ marginTop: 8 }}>
+                {reviewed(b.ref) ? (
+                  <span style={{ padding: '7px 0', fontSize: 13, color: 'var(--color-pending)', fontWeight: 600 }}>{'★'.repeat(reviewed(b.ref)!.rating)} You rated this</span>
+                ) : (
+                  <button onClick={() => setReviewing(b)} style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: 13, cursor: 'pointer' }}>
+                    ★ Leave a review
+                  </button>
+                )}
+                {slugOf(b) && (
+                  <button onClick={() => onOpenVenue(slugOf(b)!)} style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid var(--color-primary)', background: 'transparent', color: 'var(--color-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    Book again
+                  </button>
+                )}
+              </div>
             )}
           </div>
         ))}
         </ResponsiveGrid>
       </div>
+      {reviewing && <ReviewSheet booking={reviewing} onClose={() => setReviewing(null)} />}
     </div>
   )
 }

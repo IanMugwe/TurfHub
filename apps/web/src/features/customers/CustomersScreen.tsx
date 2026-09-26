@@ -5,10 +5,10 @@ import type { Customer } from '../../types'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 import ResponsiveGrid from '../../ui/ResponsiveGrid'
 
-export default function CustomersScreen({ flagged, onCustomerTap, onNewBooking }: { flagged: string[]; onCustomerTap: (c: Customer) => void; onNewBooking: () => void }) {
+export default function CustomersScreen({ venueId, flagged, onCustomerTap, onNewBooking }: { venueId: string; flagged: string[]; onCustomerTap: (c: Customer) => void; onNewBooking: () => void }) {
   const desktop = useIsDesktop()
   const [query, setQuery] = useState('')
-  const customers = useCustomers()
+  const customers = useCustomers(venueId)
   const filtered = customers.filter(c =>
     c.name.toLowerCase().includes(query.toLowerCase()) ||
     c.phone.includes(query)

@@ -7,7 +7,8 @@ import { StatusPill, PayPill } from '../../ui/Pill'
 import type { Booking, Customer } from '../../types'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 
-export default function CustomerDetailScreen({ customer: c, flagged, onToggleFlag, onBack, onBookingTap, onNewBooking }: {
+export default function CustomerDetailScreen({ venueId, customer: c, flagged, onToggleFlag, onBack, onBookingTap, onNewBooking }: {
+  venueId: string
   customer: Customer
   flagged: boolean
   onToggleFlag: () => void
@@ -20,7 +21,7 @@ export default function CustomerDetailScreen({ customer: c, flagged, onToggleFla
   const { bookings } = useDemoStore()
   // Most recent first
   const history = bookings
-    .filter(b => b.customer === c.name)
+    .filter(b => b.venueId === venueId && b.customer === c.name)
     .sort((a, b) => b.dateKey.localeCompare(a.dateKey) || rangeOf(b)[0] - rangeOf(a)[0])
     .slice(0, 10)
   const initials = c.name.split(' ').map(w => w[0]).slice(0, 2).join('')

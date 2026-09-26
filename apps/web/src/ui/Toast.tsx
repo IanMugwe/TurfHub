@@ -35,6 +35,3 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 export function useToast() {
   return useContext(ToastContext)
 }
-
-/** Standard message for features that are designed but not built yet */
-export const COMING_SOON = 'Coming soon'

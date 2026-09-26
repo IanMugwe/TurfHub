@@ -1,9 +1,11 @@
 import { useState, useRef } from 'react'
-import { VENUE, NOW_HOUR } from '../../mocks/data'
+import { NOW_HOUR } from '../../mocks/data'
+import { activePitches, blocksFor, hoursFor, isPeak, peakLabel } from '../../lib/venue'
+import EmptyState from '../../ui/EmptyState'
 import { useDemoStore } from '../../app/DemoStore'
 import { isActive } from '../../lib/bookings'
 import { dayOfMonth, todayKey, weekOf, weekdayShort } from '../../lib/dates'
-import type { Booking } from '../../types'
+import type { Booking, Venue } from '../../types'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 
 const STATUS_BG: Record<string, string> = {
@@ -23,19 +25,12 @@ const STATUS_BORDER: Record<string, string> = {
 const SOURCE_ICON: Record<string, string> = { walkin: '🚶', phone: '📞', whatsapp: '💬', app: '📱' }
 const PAY_DOT: Record<string, string> = { unpaid: 'var(--color-noshow)', partpaid: 'var(--color-pending)', paid: 'var(--color-confirmed)', waived: 'var(--color-completed)' }
 
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 06:00–23:00
 const ROW_H = 56 // px per hour slot
-const PEAK_START = 17
-const PEAK_END = 22
 
-
-// Maintenance blocks: pitch → [{ startH, endH, label }]
-const MAINTENANCE: Record<string, { startH: number; endH: number; label: string }[]> = {
-  'Pitch C': [{ startH: 10, endH: 12, label: 'Maintenance' }],
-}
-
-function bookingTop(b: Booking): number {
-  return (parseInt(b.time.split(':')[0]) - 6) * ROW_H
+/** Hours since midnight, including minutes (12:30 → 12.5) */
+function startOf(b: Booking) {
+  const [h, m] = b.time.split('–')[0].split(':').map(Number)
+  return h + m / 60
 }
 function bookingHeight(b: Booking): number {
   const [startStr, endStr] = b.time.split('–')
@@ -44,9 +39,7 @@ function bookingHeight(b: Booking): number {
   return (end - start) * ROW_H
 }
 
-const NOW_TOP = (NOW_HOUR - 6) * ROW_H
-
-export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBooking: (pitchId?: string, hour?: number, dateKey?: string) => void; onBookingTap: (b: Booking) => void }) {
+export default function CalendarScreen({ venue, onNewBooking, onBookingTap }: { venue: Venue; onNewBooking: (pitchId?: string, hour?: number, dateKey?: string) => void; onBookingTap: (b: Booking) => void }) {
   const desktop = useIsDesktop()
   const { bookings } = useDemoStore()
   const today = todayKey()
@@ -57,13 +50,26 @@ export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBo
   const selectedKey = DAYS[selectedDay]
   const isToday = selectedKey === today
 
-  const getBookingsForPitch = (pitchName: string, dateKey: string) =>
-    bookings.filter(b => b.pitch === pitchName && b.dateKey === dateKey && isActive(b))
+  const pitches = activePitches(venue)
+  const getBookingsForPitch = (pitchId: string, dateKey: string) =>
+    bookings.filter(b => b.venueId === venue.id && b.pitchId === pitchId && b.dateKey === dateKey && isActive(b))
   const [view, setView] = useState<'day' | 'week'>('day')
-  const [selectedPitch, setSelectedPitch] = useState('A') // for week view
+  const [selectedPitch, setSelectedPitch] = useState(pitches[0]?.id ?? '') // for week view
   const gridRef = useRef<HTMLDivElement>(null)
 
+  // Rows run from opening to closing time (the whole week's range in week view),
+  // stretched to include any booking made before hours changed
+  const visibleDays = view === 'day' ? [selectedKey] : DAYS
+  const openDays = visibleDays.map(d => hoursFor(venue, d)).filter(h => !h.closed)
+  const dayBookings = bookings.filter(b => b.venueId === venue.id && visibleDays.includes(b.dateKey) && isActive(b))
+  const first = Math.min(...openDays.map(h => h.open), ...dayBookings.map(b => Math.floor(startOf(b))), 23)
+  const last = Math.max(...openDays.map(h => h.close), ...dayBookings.map(b => Math.ceil(startOf(b) + bookingHeight(b) / ROW_H)), first + 1)
+  const HOURS = Array.from({ length: last - first }, (_, i) => first + i)
   const totalGridH = HOURS.length * ROW_H
+  const bookingTop = (b: Booking) => (startOf(b) - first) * ROW_H
+  const NOW_TOP = (NOW_HOUR - first) * ROW_H
+  const closedToday = view === 'day' && hoursFor(venue, selectedKey).closed && dayBookings.length === 0
+  const columns = `48px repeat(${Math.max(pitches.length, 1)}, 1fr)`
 
   return (
     <div style={desktop
@@ -97,7 +103,7 @@ export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBo
 
           {view === 'week' && (
             <div style={{ display: 'flex', gap: 4 }}>
-              {VENUE.pitches.map(p => (
+              {pitches.map(p => (
                 <button key={p.id} onClick={() => setSelectedPitch(p.id)}
                   style={{ padding: '5px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: selectedPitch === p.id ? 'var(--color-primary)' : 'var(--color-bg)', color: selectedPitch === p.id ? '#fff' : 'var(--color-muted)' }}>
                   {p.name}
@@ -113,9 +119,9 @@ export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBo
 
         {/* Pitch column headers (day view) */}
         {view === 'day' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '48px repeat(3, 1fr)', borderTop: '1px solid var(--color-border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: columns, borderTop: '1px solid var(--color-border)' }}>
             <div style={{ borderRight: '1px solid var(--color-border)' }} />
-            {VENUE.pitches.map(p => (
+            {pitches.map(p => (
               <div key={p.id} style={{ padding: '8px 6px', textAlign: 'center', borderRight: '1px solid var(--color-border)' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text)' }}>{p.name}</div>
                 <div style={{ fontSize: 10, color: 'var(--color-muted)' }}>{p.type}</div>
@@ -142,8 +148,11 @@ export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBo
       <div ref={gridRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative' }}>
 
         {/* DAY VIEW */}
-        {view === 'day' && (
-          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '48px repeat(3, 1fr)', height: totalGridH }}>
+        {closedToday && (
+          <EmptyState icon="🔒" title="Closed" message={`${venue.name} is closed on this day. Change opening hours in More › Opening hours.`} />
+        )}
+        {view === 'day' && !closedToday && (
+          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: columns, height: totalGridH }}>
             {/* Hour labels column */}
             <div style={{ borderRight: '1px solid var(--color-border)' }}>
               {HOURS.map(h => (
@@ -154,16 +163,15 @@ export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBo
             </div>
 
             {/* Pitch columns */}
-            {VENUE.pitches.map(p => {
-              const pitchBookings = getBookingsForPitch(p.name, selectedKey)
-              // Sample maintenance block, today only
-              const maintenance = isToday ? MAINTENANCE[p.name] ?? [] : []
+            {pitches.map(p => {
+              const pitchBookings = getBookingsForPitch(p.id, selectedKey)
+              const maintenance = blocksFor(venue, p.id, selectedKey).map(b => ({ startH: b.startH, endH: b.endH, label: b.reason }))
               return (
                 <div key={p.id} style={{ borderRight: '1px solid var(--color-border)', position: 'relative' }}>
                   {/* Hour rows (background grid) */}
                   {HOURS.map(h => (
                     <div key={h} onClick={() => onNewBooking(p.id, h, selectedKey)}
-                      style={{ height: ROW_H, borderBottom: '1px solid var(--color-border)', background: h >= PEAK_START && h < PEAK_END ? 'var(--color-peak)' : 'var(--color-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-border)', fontSize: 16 }}>
+                      style={{ height: ROW_H, borderBottom: '1px solid var(--color-border)', background: isPeak(venue, selectedKey, h) ? 'var(--color-peak)' : 'var(--color-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-border)', fontSize: 16 }}>
                       +
                     </div>
                   ))}
@@ -171,7 +179,7 @@ export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBo
                   {/* Maintenance hatching */}
                   {maintenance.map((m, i) => (
                     <div key={i} style={{
-                      position: 'absolute', top: (m.startH - 6) * ROW_H, left: 0, right: 0,
+                      position: 'absolute', top: (m.startH - first) * ROW_H, left: 0, right: 0,
                       height: (m.endH - m.startH) * ROW_H,
                       background: 'repeating-linear-gradient(45deg, var(--color-noshow-bg) 0px, var(--color-noshow-bg) 4px, var(--color-surface) 4px, var(--color-surface) 12px)',
                       border: '1px solid var(--color-noshow-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2,
@@ -228,13 +236,16 @@ export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBo
 
             {/* 7 day columns (all showing same pitch) */}
             {DAYS.map((d, di) => {
-              const pitchName = VENUE.pitches.find(p => p.id === selectedPitch)?.name ?? 'Pitch A'
-              const pitchBookings = getBookingsForPitch(pitchName, d)
+              const pitchBookings = getBookingsForPitch(selectedPitch, d)
+              const weekBlocks = blocksFor(venue, selectedPitch, d)
               return (
                 <div key={d} style={{ borderRight: '1px solid var(--color-border)', position: 'relative', background: di === selectedDay ? 'rgba(15,122,61,0.02)' : 'transparent' }}>
                   {HOURS.map(h => (
                     <div key={h} onClick={() => onNewBooking(selectedPitch, h, d)}
-                      style={{ height: ROW_H, borderBottom: '1px solid var(--color-border)', background: h >= PEAK_START && h < PEAK_END ? 'var(--color-peak)' : 'transparent', cursor: 'pointer' }} />
+                      style={{ height: ROW_H, borderBottom: '1px solid var(--color-border)', background: isPeak(venue, d, h) ? 'var(--color-peak)' : 'transparent', cursor: 'pointer' }} />
+                  ))}
+                  {weekBlocks.map(bl => (
+                    <div key={bl.id} title={bl.reason} style={{ position: 'absolute', top: (bl.startH - first) * ROW_H, left: 0, right: 0, height: (bl.endH - bl.startH) * ROW_H, background: 'repeating-linear-gradient(45deg, var(--color-noshow-bg) 0px, var(--color-noshow-bg) 4px, var(--color-surface) 4px, var(--color-surface) 12px)', border: '1px solid var(--color-noshow-border)', zIndex: 2 }} />
                   ))}
                   {pitchBookings.map(b => (
                     <div key={b.id} onClick={e => { e.stopPropagation(); onBookingTap(b) }}
@@ -266,7 +277,7 @@ export default function CalendarScreen({ onNewBooking, onBookingTap }: { onNewBo
       <div style={{ flexShrink: 0, background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', padding: '8px 14px', display: 'flex', gap: 16, alignItems: 'center' }}>
         <div className="flex items-center gap-1.5">
           <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--color-peak)', border: '1px solid var(--color-peak-border)' }} />
-          <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>Peak 17:00–22:00</span>
+          <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>{peakLabel(venue)}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--color-confirmed-bg)', border: '1px solid var(--color-confirmed)' }} />

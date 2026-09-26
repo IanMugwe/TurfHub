@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { sessionForPhone } from '../../mocks/data'
 import { DEMO_OTP_CODE, OTP_MODE, SHOW_DEMO_HINTS } from '../../lib/otpConfig'
 import { useIsDesktop } from '../../lib/useIsDesktop'
+import { useDemoStore } from '../../app/DemoStore'
 import type { Session } from '../../types'
 
 
@@ -13,6 +14,8 @@ export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) 
   const [resendIn, setResendIn] = useState(45)
   const inputs = useRef<(HTMLInputElement | null)[]>([])
   const desktop = useIsDesktop()
+  // Team members added during the demo (e.g. invited managers) sign in as staff
+  const { venues } = useDemoStore()
 
   const digits = phone.replace(/\D/g, '')
   const phoneValid = digits.length === 9
@@ -36,7 +39,7 @@ export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) 
   function sendCode() {
     // Testing bypass: sign in without a code (VITE_OTP_MODE=skip)
     if (OTP_MODE === 'skip') {
-      onSignedIn(sessionForPhone(`+254 ${phone}`))
+      onSignedIn(sessionForPhone(`+254 ${phone}`, venues))
       return
     }
     setStep('code')
@@ -66,7 +69,7 @@ export default function SignInScreen({ onSignedIn }: { onSignedIn: (s: Session) 
   }
 
   function signIn() {
-    if (code.join('') === DEMO_OTP_CODE) onSignedIn(sessionForPhone(`+254 ${phone}`))
+    if (code.join('') === DEMO_OTP_CODE) onSignedIn(sessionForPhone(`+254 ${phone}`, venues))
     else setError(true)
   }
 

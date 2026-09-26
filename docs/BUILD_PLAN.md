@@ -158,6 +158,7 @@ Route guards redirect signed-out users to `/login`. Venue routes require a membe
 | UI design and clickable prototype | **Done** |
 | Repo as pnpm workspace, web app in `apps/web` | **Done** |
 | F0: Frontend foundations | **Done** |
+| Demo completeness: every screen in the brief works on in-browser demo data (no "coming soon") | **Done** |
 | M0: Backend foundations | **Done** (needs Docker to run locally) |
 | M1 → M10 | To do |
 

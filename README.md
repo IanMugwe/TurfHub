@@ -34,7 +34,8 @@ Sign in with the demo accounts in the [OTP guide](docs/OTP_GUIDE.md), e.g. `722 
 
 Until the API has real tables, the web app keeps its data in the browser (`src/app/DemoStore.tsx`):
 
-- New bookings, payments, cancellations, no-shows and request decisions show up on every screen straight away.
+- Everything in the app works on this data: bookings (new, move, extend, cancel, no-show), payments, requests, venue settings (details, pitches, opening hours, pricing, blocked periods, booking rules, team, notifications), listing a new venue, reports with CSV export, and on the player side filters, the map, favourites and reviews.
+- New bookings, payments and settings changes show up on every screen straight away, and a manager you invite can sign in with their number.
 - Player bookings reach the owner's Today and Requests. Two tabs in the same browser stay in sync, so an owner window and a player window work side by side (two different devices don't sync until the API lands).
 - The sample bookings are dated relative to today, and the data resets each day. To start fresh before a demo, open **`/reset-demo`**.
 

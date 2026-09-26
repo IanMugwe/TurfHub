@@ -1,4 +1,6 @@
 export interface SlotSelection {
+  venueId: string
+  pitchId: string
   venueName: string
   area: string
   pitch: string

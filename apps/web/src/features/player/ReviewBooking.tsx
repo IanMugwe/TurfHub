@@ -2,8 +2,9 @@ import { useState } from 'react'
 import type { SlotSelection } from './types'
 import { useIsDesktop } from '../../lib/useIsDesktop'
 
-export default function ReviewBooking({ slot, onBack, onConfirm, initialName = '', initialPhone = '+254 ' }: {
+export default function ReviewBooking({ slot, cancellationHours, onBack, onConfirm, initialName = '', initialPhone = '+254 ' }: {
   slot: SlotSelection
+  cancellationHours: number
   onBack: () => void
   onConfirm: (details: { name: string; phone: string; notes: string }) => void
   /** Pre-filled from the signed-in player */
@@ -79,7 +80,7 @@ export default function ReviewBooking({ slot, onBack, onConfirm, initialName = '
 
         {/* Cancellation policy */}
         <div style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 12 }}>
-          🔓 Free cancellation up to <strong>2 hours before</strong> your booking starts.
+          🔓 Free cancellation up to <strong>{cancellationHours} hour{cancellationHours === 1 ? '' : 's'} before</strong> your booking starts.
         </div>
       </div>
 

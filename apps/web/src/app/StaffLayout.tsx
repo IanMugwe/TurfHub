@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useAppState } from './AppState'
 import NewBookingSheet from '../features/bookings/NewBookingSheet'
@@ -7,11 +7,12 @@ import TabBar, { type TabItem } from '../ui/TabBar'
 import SiteShell from './SiteShell'
 import { useIsDesktop } from '../lib/useIsDesktop'
 import { CalIcon, ChartIcon, HomeIcon, MoreIcon, PeopleIcon } from '../ui/icons'
-import { VENUE, initials } from '../mocks/data'
+import { initials } from '../mocks/data'
+import VenueSwitcherSheet from '../features/venues/VenueSwitcherSheet'
 import { useCustomers } from './useCustomers'
 import { useDemoStore } from './DemoStore'
 import { phoneToParam } from '@turfhub/validation'
-import type { Booking, Session } from '../types'
+import type { Booking, Session, StaffRole, Venue } from '../types'
 import NotFound from './NotFound'
 
 type StaffSession = Extract<Session, { role: 'staff' }>
@@ -28,6 +29,12 @@ interface NewBookingOptions {
 interface StaffState {
   session: StaffSession
   venueId: string
+  venue: Venue
+  /** Role at this venue (a person can own one venue and manage another) */
+  role: StaffRole
+  /** Venues this person works at */
+  myVenues: Venue[]
+  openVenueSwitcher: () => void
   flagged: string[]
   toggleFlag: (name: string) => void
   openBooking: (b: Booking) => void
@@ -59,8 +66,18 @@ export default function StaffLayout() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
 
-  const { bookings } = useDemoStore()
-  const customers = useCustomers()
+  const { bookings, venues, updateVenue } = useDemoStore()
+  const customers = useCustomers(venueId)
+  const myVenues = session ? venues.filter(v => v.team.some(m => m.phone === session.phone)) : []
+  const venue = myVenues.find(v => v.id === venueId)
+  const member = venue?.team.find(m => m.phone === session?.phone)
+
+  // An invited manager becomes active the first time they sign in
+  useEffect(() => {
+    if (venue && member?.status === 'invited') {
+      updateVenue(venue.id, { team: venue.team.map(m => (m.phone === member.phone ? { ...m, status: 'active' } : m)) })
+    }
+  }, [venue, member, updateVenue])
   const [flagged, setFlagged] = useState<string[]>(['Aisha Hassan'])
 
   const toggleFlag = useCallback((name: string) => setFlagged(f => (f.includes(name) ? f.filter(n => n !== name) : [...f, name])), [])
@@ -75,25 +92,28 @@ export default function StaffLayout() {
     if (opts.customerPhone) p.set('customer', phoneToParam(opts.customerPhone))
     return p
   }), [setParams])
+  const openVenueSwitcher = useCallback(() => setParams(p => { p.set('venues', '1'); return p }), [setParams])
   const closeSheet = useCallback(() => setParams(p => {
-    for (const k of ['booking', 'new', 'turf', 'start', 'date', 'customer']) p.delete(k)
+    for (const k of ['booking', 'new', 'turf', 'start', 'date', 'customer', 'venues']) p.delete(k)
     return p
   }, { replace: true }), [setParams])
 
   if (!session) return <Navigate to="/login" replace />
   if (session.role !== 'staff') return <Navigate to="/explore" replace />
-  if (venueId !== VENUE.id) return <NotFound />
+  if (!venue || !member) return <NotFound />
+  const role = member.role
 
   const section = pathname.split('/')[3]
   // Detail screens (requests, a single customer) hide the tab bar and + button
-  const isDetail = section === 'requests' || (section === 'customers' && pathname.split('/').length > 4)
-  const tabs = TABS.filter(t => t.id !== 'reports' || session.staffRole === 'owner')
+  const deep = pathname.split('/').length > 4
+  const isDetail = section === 'requests' || ((section === 'customers' || section === 'settings') && deep)
+  const tabs = TABS.filter(t => t.id !== 'reports' || role === 'owner')
   const activeTab = TABS.find(t => t.id === section)?.id ?? null
 
   const detailBooking = params.get('booking') ? bookings.find(b => b.ref === params.get('booking')) : undefined
   const newFor = params.get('customer') ? customers.find(c => phoneToParam(c.phone) === params.get('customer')) : undefined
 
-  const state: StaffState = { session, venueId, flagged, toggleFlag, openBooking, openNewBooking }
+  const state: StaffState = { session, venueId, venue, role, myVenues, openVenueSwitcher, flagged, toggleFlag, openBooking, openNewBooking }
 
   const sheets = (
     <>
@@ -108,6 +128,7 @@ export default function StaffLayout() {
         />
       )}
       {detailBooking && <BookingDetailSheet booking={detailBooking} onClose={closeSheet} />}
+      {params.get('venues') && <VenueSwitcherSheet onClose={closeSheet} />}
     </>
   )
 
@@ -125,7 +146,7 @@ export default function StaffLayout() {
               + New booking
             </button>
           ),
-          user: { initials: initials(session.name), name: session.name, role: `${session.staffRole === 'owner' ? 'Owner' : 'Manager'} · ${VENUE.name}` },
+          user: { initials: initials(session.name), name: session.name, role: `${role === 'owner' ? 'Owner' : 'Manager'} · ${venue.name}` },
           theme,
           onToggleTheme: toggleTheme,
           onSignOut: () => { signOut(); navigate('/login', { replace: true }) },
